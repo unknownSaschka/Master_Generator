@@ -7,7 +7,11 @@ using UnityEngine;
 public class GeneratorLogic : MonoBehaviour
 {
     public GameObject Level;
+    public GameObject PreparingObject;
+    public int CollectionSize = 4;
+    public int SimulationSteps = 2;
 
+    private List<GameObject> LevelCollectionPrefabs;
     private List<GameObject> LevelCollections;
     private int collectionIndex = 1;
 
@@ -25,25 +29,76 @@ public class GeneratorLogic : MonoBehaviour
 
     }
 
-    public void Generate()
+    public void ClearAll()
     {
-        PrepareCollections();
+        DeleteChildren(Level);
+        DeleteChildren(PreparingObject);
     }
 
-    private void PrepareCollections()
+    private void DeleteChildren(GameObject parent)
     {
+        var temp = new GameObject[parent.transform.childCount];
+        for(int i = 0; i < temp.Length; i++)
+        {
+            temp[i] = parent.transform.GetChild(i).gameObject;
+        }
+
+        foreach(var child in temp)
+        {
+            DestroyImmediate(child.gameObject);
+        }
+    }
+
+    public void SimulateSteps()
+    {
+        int step = 0;
+        GameObject start = LevelCollections[0];
+        Transform startPosition = Level.transform;
+
+        PlaceCollection(start, startPosition, step);
+    }
+
+    private void PlaceCollection(GameObject collection, Transform position, int step)
+    {
+        if(step > SimulationSteps) { return; }
+
+        GameObject go = PlacePrefab(collection, position);
+        CollectionSpawner cs = go.GetComponent<CollectionSpawner>();
+        
+        List<(Transform, GameObject)> nextToPlace= new List<(Transform, GameObject)>();
+        for(int i = 0; i < cs.NextGameObjectToSpawn.Count; i++)
+        {
+            Debug.Log($"{i}, {cs.NextGameObjectToSpawn.Count}");
+            nextToPlace.Add((cs.NextPosition[i].transform, cs.NextGameObjectToSpawn[i]));
+        }
+        
+        foreach(var tuple in nextToPlace) 
+        {
+            PlaceCollection(tuple.Item2, tuple.Item1, ++step);
+        }
+    }
+
+    public void PrepareCollections()
+    {
+        ClearAll();
         //Select 2 - 4 Prefabs
         //Get the Two Places where the next Collections can be Placed
 
-        LevelCollections = new List<GameObject>();
+        LevelCollectionPrefabs = new List<GameObject>();
         collectionIndex = 1;
 
-        for(int i = 0; i < 3; i++)
+        for(int i = 0; i < CollectionSize - 1; i++)
         {
-            LevelCollections.Add(GetRandomNormalCollection(CollectionType.Normal));
+            LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
         }
+        LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.End));
 
-        LevelCollections.Add(GetRandomNormalCollection(CollectionType.End));
+        LevelCollections = new List<GameObject>();
+        foreach(var prefab in LevelCollectionPrefabs)
+        {
+            GameObject newObject = Instantiate(prefab, PreparingObject.transform);
+            LevelCollections.Add(newObject);
+        }
 
         PrepareCollection(LevelCollections[0]);
     }
@@ -105,5 +160,12 @@ public class GeneratorLogic : MonoBehaviour
         }
 
         return null;
+    }
+
+    private GameObject PlacePrefab(GameObject go, Transform position)
+    {
+        GameObject newGO = Instantiate(go, Level.transform);
+        newGO.transform.position = position.position;
+        return newGO;
     }
 }

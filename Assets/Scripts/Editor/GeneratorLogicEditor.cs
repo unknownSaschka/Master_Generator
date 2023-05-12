@@ -12,9 +12,19 @@ public class GeneratorLogicEditor : Editor
         base.OnInspectorGUI();
         GeneratorLogic logic = (GeneratorLogic)target;
 
-        if (GUILayout.Button("Generate"))
+        if (GUILayout.Button("DeleteAll"))
         {
-            logic.Generate();
+            logic.ClearAll();
+        }
+
+        if (GUILayout.Button("Prepare Collections"))
+        {
+            logic.PrepareCollections();
+        }
+
+        if(GUILayout.Button("Simulate Steps"))
+        {
+            logic.SimulateSteps();
         }
     }
 }
