@@ -13,9 +13,10 @@ public class GeneratorLogic : MonoBehaviour
 
     private List<GameObject> LevelCollectionPrefabs;
     private List<GameObject> LevelCollections;
+    private List<Transform> BlockPlacements;
     private int collectionIndex = 1;
 
-    private enum CollectionType { Normal, End }
+    private enum CollectionType { TwoWay, Normal, End }
 
     // Start is called before the first frame update
     void Start()
@@ -29,10 +30,22 @@ public class GeneratorLogic : MonoBehaviour
 
     }
 
+    public void CompleteGeneration()
+    {
+        ClearAll();
+        PrepareCollections();
+        SimulateSteps();
+    }
+
     public void ClearAll()
     {
         DeleteChildren(Level);
         DeleteChildren(PreparingObject);
+    }
+
+    public void ClearPrefabs()
+    {
+        DeleteChildren(Level);
     }
 
     private void DeleteChildren(GameObject parent)
@@ -53,28 +66,29 @@ public class GeneratorLogic : MonoBehaviour
     {
         int step = 0;
         GameObject start = LevelCollections[0];
-        Transform startPosition = Level.transform;
 
-        PlaceCollection(start, startPosition, step);
+        PlaceCollection(start, Level, step);
     }
 
-    private void PlaceCollection(GameObject collection, Transform position, int step)
+    private void PlaceCollection(GameObject collection, GameObject spawnPoint, int step)
     {
         if(step > SimulationSteps) { return; }
 
-        GameObject go = PlacePrefab(collection, position);
+        GameObject go = PlacePrefab(collection, spawnPoint.transform.position);
+        Rotate(spawnPoint.transform.parent?.gameObject, spawnPoint, go);
+
         CollectionSpawner cs = go.GetComponent<CollectionSpawner>();
         
-        List<(Transform, GameObject)> nextToPlace= new List<(Transform, GameObject)>();
+        List<(GameObject, GameObject)> nextToPlace= new List<(GameObject, GameObject)>();
         for(int i = 0; i < cs.NextGameObjectToSpawn.Count; i++)
         {
             Debug.Log($"{i}, {cs.NextGameObjectToSpawn.Count}");
-            nextToPlace.Add((cs.NextPosition[i].transform, cs.NextGameObjectToSpawn[i]));
+            nextToPlace.Add((cs.NextGameObjectToSpawn[i], cs.NextPosition[i]));
         }
         
         foreach(var tuple in nextToPlace) 
         {
-            PlaceCollection(tuple.Item2, tuple.Item1, ++step);
+            PlaceCollection(tuple.Item1, tuple.Item2, ++step);
         }
     }
 
@@ -84,12 +98,20 @@ public class GeneratorLogic : MonoBehaviour
         //Select 2 - 4 Prefabs
         //Get the Two Places where the next Collections can be Placed
 
+        BlockPlacements = new List<Transform>();
         LevelCollectionPrefabs = new List<GameObject>();
         collectionIndex = 1;
 
         for(int i = 0; i < CollectionSize - 1; i++)
         {
-            LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
+            if(UnityEngine.Random.Range(0, 1) == 0){
+                LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.TwoWay));
+            }
+            else
+            {
+                LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
+            }
+            
         }
         LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.End));
 
@@ -138,6 +160,9 @@ public class GeneratorLogic : MonoBehaviour
 
         switch (collectionType)
         {
+            case CollectionType.TwoWay:
+                collection = "Assets/Prefabs/Collections/Two Way";
+                break;
             case CollectionType.Normal:
                 collection = "Assets/Prefabs/Collections/Normal";
                 break;
@@ -162,10 +187,31 @@ public class GeneratorLogic : MonoBehaviour
         return null;
     }
 
-    private GameObject PlacePrefab(GameObject go, Transform position)
+    private GameObject PlacePrefab(GameObject go, Vector3 position)
     {
         GameObject newGO = Instantiate(go, Level.transform);
-        newGO.transform.position = position.position;
+        newGO.transform.position = position;
+        BlockPlacements.Add(newGO.transform);
         return newGO;
+    }
+
+    private GameObject Rotate(GameObject previous, GameObject spawnLocation, GameObject current)
+    {
+        DirectionLogic.Direction prevDir;
+        if (previous == null)
+        {
+            prevDir = DirectionLogic.Direction.North;
+        }
+        else
+        {
+            prevDir = DirectionLogic.GetDirection(previous.transform);
+        }
+        
+        DirectionLogic.Direction spawnPointDirection = spawnLocation.GetComponent<SpawnPoint>().Directon;
+        DirectionLogic.Direction resultingDirection = DirectionLogic.GetRotation(prevDir, spawnPointDirection);
+        int newRotation = DirectionLogic.GetRoation(resultingDirection);
+        Vector3 oldRotation = current.transform.rotation.eulerAngles;
+        current.transform.rotation = Quaternion.Euler(oldRotation.x, newRotation, oldRotation.z);
+        return current;
     }
 }

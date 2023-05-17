@@ -26,5 +26,24 @@ public class GeneratorLogicEditor : Editor
         {
             logic.SimulateSteps();
         }
+
+        GUILayout.Space(10);
+
+        if(GUILayout.Button("Delete Assets"))
+        {
+            logic.ClearPrefabs();
+        }
+
+        if (GUILayout.Button("Simulate Steps"))
+        {
+            logic.SimulateSteps();
+        }
+
+        GUILayout.Space(10);
+
+        if(GUILayout.Button("Complete New Generation"))
+        {
+            logic.CompleteGeneration();
+        }
     }
 }
