@@ -8,6 +8,7 @@ public class GeneratorLogic : MonoBehaviour
 {
     public GameObject Level;
     public GameObject PreparingObject;
+    public CollectionSelection Selection;
     public int CollectionSize = 4;
     public int SimulationSteps = 2;
 
@@ -17,6 +18,7 @@ public class GeneratorLogic : MonoBehaviour
     private int collectionIndex = 1;
 
     private enum CollectionType { TwoWay, Normal, End }
+    public enum CollectionSelection { OnlyTwoWay, OnlyNormal, Mixed }
 
     // Start is called before the first frame update
     void Start()
@@ -104,14 +106,25 @@ public class GeneratorLogic : MonoBehaviour
 
         for(int i = 0; i < CollectionSize - 1; i++)
         {
-            if(UnityEngine.Random.Range(0, 1) == 0){
-                LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.TwoWay));
-            }
-            else
+            switch (Selection)
             {
-                LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
+                case CollectionSelection.OnlyNormal:
+                    LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
+                    break;
+                case CollectionSelection.OnlyTwoWay:
+                    LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.TwoWay));
+                    break;
+                case CollectionSelection.Mixed:
+                    if (UnityEngine.Random.Range(0, 1) == 0)
+                    {
+                        LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.TwoWay));
+                    }
+                    else
+                    {
+                        LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.Normal));
+                    }
+                    break;
             }
-            
         }
         LevelCollectionPrefabs.Add(GetRandomNormalCollection(CollectionType.End));
 

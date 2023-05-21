@@ -12,26 +12,35 @@ public class GeneratorLogicEditor : Editor
         base.OnInspectorGUI();
         GeneratorLogic logic = (GeneratorLogic)target;
 
+        GUILayout.BeginHorizontal();
+        if (GUILayout.Button("-"))
+        {
+            logic.SimulationSteps--;
+        }
+
+        if(GUILayout.Button("+")) 
+        {
+            logic.SimulationSteps++;
+        }
+        GUILayout.EndHorizontal();
+
+        GUILayout.Space(10);
+
         if (GUILayout.Button("DeleteAll"))
         {
             logic.ClearAll();
         }
 
-        if (GUILayout.Button("Prepare Collections"))
+        if (GUILayout.Button("Delete Assets"))
         {
-            logic.PrepareCollections();
-        }
-
-        if(GUILayout.Button("Simulate Steps"))
-        {
-            logic.SimulateSteps();
+            logic.ClearPrefabs();
         }
 
         GUILayout.Space(10);
 
-        if(GUILayout.Button("Delete Assets"))
+        if (GUILayout.Button("Prepare Collections"))
         {
-            logic.ClearPrefabs();
+            logic.PrepareCollections();
         }
 
         if (GUILayout.Button("Simulate Steps"))
