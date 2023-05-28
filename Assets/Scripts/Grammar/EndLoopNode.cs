@@ -5,7 +5,7 @@ using XNode;
 
 [NodeTint("#ed4245")]
 [NodeWidth(200)]
-public class EndNode : GrammarNode
+public class EndLoopNode : GrammarNode
 {
 
 	[Input] public GrammarNode Input;

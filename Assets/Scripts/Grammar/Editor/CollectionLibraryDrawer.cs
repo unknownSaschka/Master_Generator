@@ -11,6 +11,8 @@ public class CollectionLibraryDrawer : NodeEditor
 
     private CollectionLibrary collectionLibrary;
 
+    private int _selectedFolder = 0;
+
     public override void OnBodyGUI()
     {
         if(collectionLibrary == null)
@@ -26,7 +28,12 @@ public class CollectionLibraryDrawer : NodeEditor
 
         if (GUILayout.Button("Load"))
         {
-            collectionLibrary.LoadFolder();
+            
         }
+
+        var folders = collectionLibrary.GetFolder();
+
+        _selectedFolder = EditorGUILayout.Popup(_selectedFolder, folders.ToArray());
+        collectionLibrary.Selected = folders[_selectedFolder];
     }
 }
