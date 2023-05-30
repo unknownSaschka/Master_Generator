@@ -11,8 +11,12 @@ public class CollectionLibrary : GrammarNode
 	[Output] public GrammarNode Next;
 
 	public string Selected = "";
+	[HideInInspector] public int SelectedFolder = 0;
 
-    
+	private string CollectionsFolder = "Assets/Prefabs/Collections";
+
+
+
     protected override void Init() {
 		base.Init();
 		
@@ -26,7 +30,7 @@ public class CollectionLibrary : GrammarNode
 
 	public List<string> GetFolder()
 	{
-		var folders = AssetDatabase.GetSubFolders("Assets/Prefabs/Collections");
+		var folders = AssetDatabase.GetSubFolders(CollectionsFolder);
 		List<string> result = new List<string>();
 		foreach (var folder in folders)
 		{
@@ -34,5 +38,10 @@ public class CollectionLibrary : GrammarNode
 		}
 
 		return result;
+	}
+
+	public string GetSelectedFolder()
+	{
+		return CollectionsFolder + "/" + Selected;
 	}
 }

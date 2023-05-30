@@ -26,6 +26,8 @@ public class GeneratorLogicEditor : Editor
 
         GUILayout.Space(10);
 
+        GUILayout.Label("Normal Testing");
+
         if (GUILayout.Button("DeleteAll"))
         {
             logic.ClearAll();
@@ -53,6 +55,15 @@ public class GeneratorLogicEditor : Editor
         if(GUILayout.Button("Complete New Generation"))
         {
             logic.CompleteGeneration();
+        }
+
+        GUILayout.Space(15);
+
+        GUILayout.Label("Graph Testing");
+
+        if(GUILayout.Button("Graph Generation"))
+        {
+            logic.CompleteGenerationGrammar();
         }
     }
 }

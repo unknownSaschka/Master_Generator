@@ -7,10 +7,11 @@ using UnityEngine;
 public class GeneratorLogic : MonoBehaviour
 {
     public GameObject Level;
-    public GameObject PreparingObject;
+    public GameObject PreparingParent;
     public CollectionSelection Selection;
     public int CollectionSize = 4;
     public int SimulationSteps = 2;
+    public GrammarGraph Graph;
 
     private List<GameObject> LevelCollectionPrefabs;
     private List<GameObject> LevelCollections;
@@ -32,6 +33,13 @@ public class GeneratorLogic : MonoBehaviour
 
     }
 
+    public void CompleteGenerationGrammar()
+    {
+        ClearAll();
+        GameObject start = Graph.GetCollections(PreparingParent);
+        SimulateSteps(start);
+    }
+
     public void CompleteGeneration()
     {
         ClearAll();
@@ -42,7 +50,8 @@ public class GeneratorLogic : MonoBehaviour
     public void ClearAll()
     {
         DeleteChildren(Level);
-        DeleteChildren(PreparingObject);
+        DeleteChildren(PreparingParent);
+        BlockPlacements.Clear();
     }
 
     public void ClearPrefabs()
@@ -72,6 +81,12 @@ public class GeneratorLogic : MonoBehaviour
         PlaceCollection(start, Level, step);
     }
 
+    public void SimulateSteps(GameObject start)
+    {
+        int step = 0;
+        PlaceCollection(start, Level, step);
+    }
+
     private void PlaceCollection(GameObject collection, GameObject spawnPoint, int step)
     {
         if(step > SimulationSteps) { return; }
@@ -87,8 +102,8 @@ public class GeneratorLogic : MonoBehaviour
             Debug.Log($"{i}, {cs.NextGameObjectToSpawn.Count}");
             nextToPlace.Add((cs.NextGameObjectToSpawn[i], cs.NextPosition[i]));
         }
-        
-        foreach(var tuple in nextToPlace) 
+
+        foreach (var tuple in nextToPlace) 
         {
             PlaceCollection(tuple.Item1, tuple.Item2, ++step);
         }
@@ -131,7 +146,7 @@ public class GeneratorLogic : MonoBehaviour
         LevelCollections = new List<GameObject>();
         foreach(var prefab in LevelCollectionPrefabs)
         {
-            GameObject newObject = Instantiate(prefab, PreparingObject.transform);
+            GameObject newObject = Instantiate(prefab, PreparingParent.transform);
             LevelCollections.Add(newObject);
         }
 

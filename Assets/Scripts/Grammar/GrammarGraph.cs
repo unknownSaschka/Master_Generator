@@ -1,11 +1,17 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using UnityEditor;
 using UnityEngine;
 using XNode;
 
 [CreateAssetMenu]
-public class GrammarGraph : NodeGraph { 
-	
+public class GrammarGraph : NodeGraph {
+
+	private GameObject First;
+	private GameObject Parent;
+
 	public GameObject GetLevel()
 	{
 		var startNodes = GetStartNodes();
@@ -17,6 +23,60 @@ public class GrammarGraph : NodeGraph {
 		}
 
 		return null;
+	}
+
+	public GameObject GetCollections(GameObject preparingParent)
+	{
+		First = null;
+		Parent = preparingParent;
+
+        var startNodes = GetStartNodes();
+		GrammarNode firstNode = startNodes.First().GetOutputPort("Next").GetConnections().First().node as GrammarNode;
+
+		GetNextCollection(firstNode, null, 0);
+		return First;
+    }
+
+	private void GetNextCollection(GrammarNode node, GameObject previous, int spawnPoint)
+	{
+		//TDOD TESTING AAAAAAAAAAAAHHHHHHHHHHHHHHHHHHH
+
+		if(node is CollectionLibrary)
+		{
+			string folder = (node as CollectionLibrary).GetSelectedFolder();
+			GameObject current = Instantiate(GetRandomFromFolder(folder), Parent.transform);
+
+			if(First == null)
+			{
+				First = current;
+			}
+
+			if(previous != null)
+			{
+                CollectionSpawner previousCS = previous.GetComponent<CollectionSpawner>();
+
+                if (spawnPoint < previousCS.NextPosition.Count)
+                {
+					previousCS.NextGameObjectToSpawn.Add(current);
+                }
+            }
+
+            //Node logic
+            List<NodePort> ports = node.GetOutputPort("Next").GetConnections();
+
+			int index = 0;
+            foreach (var port in ports)
+			{
+				GetNextCollection(port.node as GrammarNode, current, index);
+				index++;
+			}
+        }
+
+		if(node is EndLoopNode)
+		{
+            CollectionSpawner previousCS = previous.GetComponent<CollectionSpawner>();
+			previousCS.NextGameObjectToSpawn.Add(First);
+        }
 	}
 
 	private List<GrammarNode> GetNextNodes(GrammarNode node)
@@ -59,5 +119,13 @@ public class GrammarGraph : NodeGraph {
 
 		return startNodes;
 	}
+
+	private GameObject GetRandomFromFolder(string folder)
+	{
+        string[] guids = AssetDatabase.FindAssets("t:prefab", new string[] { folder });
+        int rng = UnityEngine.Random.Range(0, guids.Length - 1);
+        string path = AssetDatabase.GUIDToAssetPath(guids[rng]);
+        return AssetDatabase.LoadAssetAtPath<GameObject>(path);
+    }
 
 }
