@@ -37,7 +37,7 @@ public class WFCDrawer : Editor
                 wfc.GraphPath = newJSONPath;
             }
 
-            wfc.Nodes = JSONParser.ParseJSON(wfc.GraphPath);
+            wfc.LoadJSON();
         }
     }
 

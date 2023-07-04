@@ -9,6 +9,14 @@ public class WFC : MonoBehaviour
     public Texture2D BitmapTexture;
     public Dictionary<string, Node> Nodes;
 
+    //TODO Sample List in Node or smth
+    public int SampleSize;
+    public int Width, Height;
+    public bool PeriodicInput;
+    public bool Periodic;
+    public bool Symmetric;
+    public bool Ground;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -23,6 +31,6 @@ public class WFC : MonoBehaviour
 
     public void LoadJSON()
     {
-
+        Nodes = JSONParser.ParseJSON(BitmapPath);
     }
 }

@@ -125,6 +125,7 @@ namespace B83.Image.BMP
 
     public class BMPImage
     {
+        public static readonly int Zero = 0b_0000_0000_0000_0000_0000_0000_0000_0000;
         public BMPFileHeader header;
         public BitmapInfoHeader info;
         public List<Color32> palette;
@@ -158,6 +159,53 @@ namespace B83.Image.BMP
                 }
             }
             info.height = h;
+        }
+
+        public int[] ToIntArray()
+        {
+            //Converts Color32 Array to an int array with bgra32
+            int[] img = new int[info.width * info.height];
+            for(int i = 0; i < imageData.Length; i++)
+            {
+                //WFC wants BGRA32
+                /*
+                int col = Zero;
+                col = col | imageData[i].b;
+                col = col << 8;
+                col = col | imageData[i].g;
+                col = col << 8;
+                col = col | imageData[i].r;
+                col = col << 8;
+                col = col | imageData[i].a;
+                img[i] = col;
+                */
+
+                byte[] bytes = new byte[4];
+                bytes[0] = imageData[i].b;
+                bytes[1] = imageData[i].g;
+                bytes[2] = imageData[i].r;
+                bytes[3] = imageData[i].a;
+                img[i] = BitConverter.ToInt32(bytes, 0);
+            }
+
+            return img;
+        }
+
+        public static Color32[] ToColor32(int[] image)
+        {
+            Color32[] colors = new Color32[image.Length];
+
+            for(int i = 0; i < image.Length; i++)
+            {
+                byte[] intBytes = BitConverter.GetBytes(image[i]);
+                colors[i] = new Color32();
+                colors[i].b = intBytes[0];
+                colors[i].g = intBytes[1];
+                colors[i].r = intBytes[2];
+                colors[i].a = intBytes[3];
+            }
+
+            return colors;
         }
 
         public void ReplaceColor(Color32 aColorToSearch, Color32 aReplacementColor)

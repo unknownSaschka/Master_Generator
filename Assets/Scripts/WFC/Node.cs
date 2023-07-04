@@ -9,7 +9,9 @@ public class Node
     public List<string> Children;
     public Adjacenties Adjacenties;
     public Texture2D Sample;
-    private List<byte[]> patterns;
+    private Dictionary<int, List<byte[]>> patterns;    //saves all patterns in all sizes
+
+    
 }
 
 public class Adjacenties
