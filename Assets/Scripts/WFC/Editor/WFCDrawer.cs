@@ -14,22 +14,37 @@ public class WFCDrawer : Editor
         WFC wfc = (WFC)target;
 
 
-        if(wfc.BitmapTexture == null ) 
+        if(wfc.StructureBitmapTexture == null ) 
         {
-            if (GUILayout.Button("Load Image"))
+            if (GUILayout.Button("Load Structure"))
             {
-                LoadImage(wfc);
+                wfc.LoadStructure();
             }
         }
         else
         {
-            if (GUILayout.Button(wfc.BitmapTexture, GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
+            if (GUILayout.Button(wfc.StructureBitmapTexture.ToTexture2D(), GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
             {
-                LoadImage(wfc);
+                wfc.LoadStructure();
             }
         }
 
-        if(GUILayout.Button("Load Graph"))
+        if (wfc.SampleBitmap == null)
+        {
+            if (GUILayout.Button("Load Sample"))
+            {
+                wfc.LoadSample();
+            }
+        }
+        else
+        {
+            if (GUILayout.Button(wfc.SampleBitmap, GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
+            {
+                wfc.LoadSample();
+            }
+        }
+
+        if (GUILayout.Button("Load Graph"))
         {
             string newJSONPath = EditorUtility.OpenFilePanel("Select Graph JSON", "", "json");
             if(newJSONPath.Length > 0)
@@ -39,11 +54,22 @@ public class WFCDrawer : Editor
 
             wfc.LoadJSON();
         }
+
+        if (GUILayout.Button("Generate"))
+        {
+            wfc.GeneratePicture();
+        }
+
+        if(GUILayout.Button("Prepare Model"))
+        {
+            wfc.PrepareModel();
+        }
+
+        if (GUILayout.Button("Stepped Generate"))
+        {
+            wfc.SteppedGenerate();
+        }
     }
 
-    private void LoadImage(WFC wfc)
-    {
-        wfc.BitmapPath = EditorUtility.OpenFilePanel("Select Bitmap", "", "bmp");
-        wfc.BitmapTexture = InputImage.LoadImage(wfc.BitmapPath);
-    }
+    
 }

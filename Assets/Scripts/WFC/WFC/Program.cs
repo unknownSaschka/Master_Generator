@@ -36,7 +36,7 @@ static class Program
                 int symmetry = xelem.Get("symmetry", 8);
                 bool ground = xelem.Get("ground", false);
 
-                model = new OverlappingModel(name, N, width, height, periodicInput, periodic, symmetry, ground, heuristic);
+                model = new OverlappingModel(null, 0, 0, N, width, height, periodicInput, periodic, symmetry, ground, heuristic);     //temporary null
             }
             else
             {

@@ -1,8 +1,9 @@
 ﻿// Copyright (C) 2016 Maxim Gumin, The MIT License (MIT)
 
 using System;
+//using UnityEngine;
 
-abstract class Model
+public abstract class Model
 {
     //[Position im Feld][Anzahl aller Patterns]
     protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
@@ -122,6 +123,45 @@ abstract class Model
         }
 
         return true;
+    }
+
+    public void InitStepRun()
+    {
+        if (wave == null) Init();
+
+        Clear();
+        //Random random = new(seed);
+    }
+
+    public int StepRun(Random random)
+    {
+        int node = NextUnobservedNode(random);
+
+        //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
+        if (node >= 0)
+        {
+            Observe(node, random);
+            bool success = Propagate();
+            if (!success) return -1;
+        }
+        //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
+        else
+        {
+            for (int i = 0; i < wave.Length; i++)
+            {
+                for (int t = 0; t < T; t++)
+                {
+                    if (wave[i][t])
+                    {
+                        observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
+                        break;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        return 1;
     }
 
     /// <summary>

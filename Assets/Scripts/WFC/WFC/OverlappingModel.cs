@@ -1,17 +1,20 @@
 ﻿// Copyright (C) 2016 Maxim Gumin, The MIT License (MIT)
 
+using B83.Image.BMP;
 using System;
 using System.Collections.Generic;
+using UnityEngine;
 
 class OverlappingModel : Model
 {
     List<byte[]> patterns;
     List<int> colors;
 
-    public OverlappingModel(string name, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Heuristic heuristic)
+    public OverlappingModel(int[] bitmap, int SX, int SY, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Heuristic heuristic)
         : base(width, height, N, periodic, heuristic)
     {
-        var (bitmap, SX, SY) = BitmapHelper.LoadBitmap($"samples/{name}.png");        
+        //var (bitmap, SX, SY) = BitmapHelper.LoadBitmap($"samples/{name}.png");
+        
         byte[] sample = new byte[bitmap.Length];
 
         //speichert alle einmaligen Farben heraus
@@ -141,6 +144,12 @@ class OverlappingModel : Model
 
     public override void Save(string filename)
     {
+        int[] bitmap = GenerateBitmap();
+        BitmapHelper.SaveBitmap(bitmap, MX, MY, filename);
+    }
+
+    public int[] GenerateBitmap()
+    {
         int[] bitmap = new int[MX * MY];
         if (observed[0] >= 0)
         {
@@ -182,6 +191,7 @@ class OverlappingModel : Model
                 bitmap[i] = unchecked((int)0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors);
             }
         }
-        BitmapHelper.SaveBitmap(bitmap, MX, MY, filename);
+
+        return bitmap;
     }
 }
