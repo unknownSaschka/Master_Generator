@@ -35,7 +35,8 @@ public class WFC : MonoBehaviour
 
     private OverlappingModel currentModel;
 
-    public int SecondsWait = 10;
+    public int MilliSecondsWait = 10;
+    public int Retries = 20;
 
     // Start is called before the first frame update
     void Start()
@@ -99,46 +100,60 @@ public class WFC : MonoBehaviour
         int skip = 5;
         int index = 0;
 
-        for (int i = 0; i < 10000; i++)
+        for(int tries = 0; tries < Retries; tries++)
         {
-            int finished = currentModel.StepRun(random);
-            index++;
+            bool contradiction = false;
 
-            //Debug.Log(finished);
-            if (finished == -1)     //CONTRADICTION, Fehler beim Generieren
+            for (int i = 0; i < 50000; i++)
             {
-                //yield break;
-                return;
-            }
+                int finished = currentModel.StepRun(random);
+                index++;
 
-            if(finished == 0)       //Fertig
-            {
-                int[] current = currentModel.GenerateBitmap();
-                SetImageOnObject(ResultPlane, GetTextureFromInt(current));
-                //yield return new WaitForSecondsRealtime(SecondsWait);
-                return;
-            }
-
-            if(finished == 1)       //Aktiv
-            {
-                if(index >= skip)
+                //Debug.Log(finished);
+                if (finished == -1)     //CONTRADICTION, Fehler beim Generieren
                 {
-                    index = 0;
+                    //yield break;
+                    Debug.Log("CONTRADICTION");
+                    contradiction = true;
+                    break;
+                }
+
+                if (finished == 0)       //Fertig
+                {
                     int[] current = currentModel.GenerateBitmap();
                     SetImageOnObject(ResultPlane, GetTextureFromInt(current));
-                    //yield return new WaitForSeconds(SecondsWait);
-                    await Task.Delay(SecondsWait);
+                    //yield return new WaitForSecondsRealtime(SecondsWait);
+                    return;
                 }
+
+                if (finished == 1)       //Aktiv
+                {
+                    if (index >= skip)
+                    {
+                        index = 0;
+                        int[] current = currentModel.GenerateBitmap();
+                        SetImageOnObject(ResultPlane, GetTextureFromInt(current));
+                        //yield return new WaitForSeconds(SecondsWait);
+                        await Task.Delay(MilliSecondsWait);
+                    }
+                }
+
+                //int[] current = currentModel.GenerateBitmap();
+                //SetImageOnObject(ResultPlane, GetTextureFromInt(current));
+                //yield return new WaitForSecondsRealtime(SecondsWait);
             }
 
-            //int[] current = currentModel.GenerateBitmap();
-            //SetImageOnObject(ResultPlane, GetTextureFromInt(current));
-            //yield return new WaitForSecondsRealtime(SecondsWait);
+            if (!contradiction)
+            {
+                int[] result = currentModel.GenerateBitmap();
+                SetImageOnObject(ResultPlane, GetTextureFromInt(result));
+                return;
+            }
+            else
+            {
+                currentModel.InitStepRun();
+            }
         }
-
-        int[] result = currentModel.GenerateBitmap();
-        SetImageOnObject(ResultPlane, GetTextureFromInt(result));
-        //yield return result;
     }
 
     public void SetImageOnObject(GameObject gameObject, BMPImage texture)
