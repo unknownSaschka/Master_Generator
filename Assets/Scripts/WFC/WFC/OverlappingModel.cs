@@ -3,13 +3,28 @@
 using B83.Image.BMP;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
-class OverlappingModel : Model
+public class OverlappingModel : Model
 {
     List<byte[]> patterns;
     List<int> colors;
 
+    /// <summary>
+    /// Overlapping constructor for leafs
+    /// </summary>
+    /// <param name="bitmap"></param>
+    /// <param name="SX"></param>
+    /// <param name="SY"></param>
+    /// <param name="N"></param>
+    /// <param name="width"></param>
+    /// <param name="height"></param>
+    /// <param name="periodicInput"></param>
+    /// <param name="periodic"></param>
+    /// <param name="symmetry"></param>
+    /// <param name="ground"></param>
+    /// <param name="heuristic"></param>
     public OverlappingModel(int[] bitmap, int SX, int SY, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Heuristic heuristic)
         : base(width, height, N, periodic, heuristic)
     {
@@ -28,7 +43,7 @@ class OverlappingModel : Model
             sample[i] = (byte)k;
         }
 
-        //speichert sich alle Patterns heraus, dreht und spiegelt diese und sichert alle einmaligen in eine Liste
+        //speichert sich alle Patterns heraus, dreht und spiegelt diese und sichert alle einmaligen in eine Liste 0751 509310
         static byte[] pattern(Func<int, int, byte> f, int N)
         {
             byte[] result = new byte[N * N];
@@ -38,17 +53,7 @@ class OverlappingModel : Model
         static byte[] rotate(byte[] p, int N) => pattern((x, y) => p[N - 1 - y + x * N], N);
         static byte[] reflect(byte[] p, int N) => pattern((x, y) => p[N - 1 - x + y * N], N);
 
-        //hash funktion wird dazu genutzt, um zu prüfen, ob das Pattern schon gespeichert wurde
-        static long hash(byte[] p, int C)
-        {
-            long result = 0, power = 1;
-            for (int i = 0; i < p.Length; i++)
-            {
-                result += p[p.Length - 1 - i] * power;
-                power *= C;
-            }
-            return result;
-        };
+        
 
         patterns = new();
         Dictionary<long, int> patternIndices = new();
@@ -76,7 +81,7 @@ class OverlappingModel : Model
                     //Pattern wird gehashed anhand dessen Inhalt. Gibt es schon ein Pattern mit demselben Hashwert, so ist es ein duplikat und wird nicht zur Liste hinzugefügt.
                     byte[] p = ps[k];
                     long h = hash(p, C);
-                    if (patternIndices.TryGetValue(h, out int index)) weightList[index] = weightList[index] + 1;    //Vermutung: Umso öfter ein Pattern vorkam, desto höher steigt die gewichtung (weight) von diesem
+                    if (patternIndices.TryGetValue(h, out int index)) weightList[index] = weightList[index] + 1;    //Umso öfter ein Pattern vorkam, desto höher steigt die gewichtung (weight) von diesem
                     else
                     {
                         patternIndices.Add(h, weightList.Count);
@@ -115,8 +120,81 @@ class OverlappingModel : Model
         }
     }
 
+    public OverlappingModel(List<OverlappingModel> models, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic)
+        : base(width, height, N, periodic, heuristic)
+    {
+        //copy and merging all colors
+        colors = new();
+        foreach(var model in models)
+        {
+            colors.AddRange(model.colors);
+        }
+
+        colors = colors.Distinct().ToList();        //removes all duplicates in the list
+        int C = colors.Count;
+
+
+        //merging all patterns with checking for uniqueness and new indicing
+        //if patterns will be discarded, also look about the weights
+        patterns = new();
+        Dictionary<long, int> patternIndices = new();
+        List<double> weightList = new();
+        int index = 0;
+        foreach (var model in models)
+        {
+            for(int i = 0; i < model.patterns.Count; i++)
+            {
+                long h = hash(model.patterns[i], C);
+
+                if(patternIndices.TryGetValue(h, out int listIndex))
+                {
+                    //dupicate found
+                    weightList[listIndex] += model.weights[i];      //TODO: Überlegen ob addition richtig ist bei bereits processed gewichtungen
+                }
+                else
+                {
+                    //new entry
+                    patternIndices.Add(h, index);
+                    weightList.Add(model.weights[i]);
+                    patterns.Add(model.patterns[i]);
+                    index++;    //Wird nur hochgezählt falls es keine doppelung gab
+                }
+            }
+        }
+
+        //recalculate all weights again?
+        weights = weightList.ToArray();
+        T = weights.Length;
+        this.ground = ground;
+
+        //create new propagator array
+        //duplicate from the other constructor
+
+        //Bereitet das Feld vor mit allen möglichen Zuständen
+
+        propagator = new int[4][][];    //4 wegen den 4 Seiten die ein Tile hat (oben, rechts, unten, links)
+        for (int d = 0; d < 4; d++)
+        {
+            propagator[d] = new int[T][];   //T ist die Anzahl an einmaligen Patterns
+            for (int t = 0; t < T; t++)
+            {
+                List<int> list = new();
+                for (int t2 = 0; t2 < T; t2++)
+                {
+                    if (agrees(patterns[t], patterns[t2], dx[d], dy[d], N)) list.Add(t2);
+                }
+
+                propagator[d][t] = new int[list.Count];
+                for (int c = 0; c < list.Count; c++)
+                {
+                    propagator[d][t][c] = list[c];
+                }
+            }
+        }
+    }
+
     /// <summary>
-    /// Test
+    /// Funktion die überprüft, ob zwei Patterns an bestimmten Stellen übereinstimmen
     /// </summary>
     /// <param name="p1"></param>
     /// <param name="p2"></param>
@@ -140,6 +218,23 @@ class OverlappingModel : Model
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Hash funktion wird dazu genutzt, um zu prüfen, ob das Pattern schon gespeichert wurde
+    /// </summary>
+    /// <param name="p"></param>
+    /// <param name="C"></param>
+    /// <returns></returns>
+    static long hash(byte[] p, int C)
+    {
+        long result = 0, power = 1;
+        for (int i = 0; i < p.Length; i++)
+        {
+            result += p[p.Length - 1 - i] * power;
+            power *= C;
+        }
+        return result;
     }
 
     public override void Save(string filename)

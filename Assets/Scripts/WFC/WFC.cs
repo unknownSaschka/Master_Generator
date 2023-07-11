@@ -53,6 +53,32 @@ public class WFC : MonoBehaviour
     public void LoadJSON()
     {
         Nodes = JSONParser.ParseJSON(StructureBitmapPath);
+        List<Node> toProcess = new List<Node>();
+
+        foreach(var node in Nodes)
+        {
+            if(node.Value.Sample != null)
+            {
+                node.Value.OverlappingModel = new OverlappingModel(FromTexture(node.Value.Sample), node.Value.Sample.width, node.Value.Sample.height, SampleSize, Width, Height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
+            }
+            else
+            {
+                toProcess.Add(node.Value);
+            }
+        }
+
+        foreach(var node in toProcess)
+        {
+            List<OverlappingModel> models = new();
+            
+            foreach(string nodeName in node.Children)
+            {
+                Node n = Nodes[nodeName];
+                models.Add(n.OverlappingModel);
+            }
+
+            node.OverlappingModel = new OverlappingModel(models, SampleSize, Width, Height, Periodic, Ground, Heuristic);
+        }
     }
 
     public void LoadStructure()

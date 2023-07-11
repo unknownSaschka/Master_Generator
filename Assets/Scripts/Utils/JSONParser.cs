@@ -25,8 +25,16 @@ public class JSONParser
             //Debug.Log(parentProp.Name);   //Property name
 
             string samplePath = content.Value<string>("sample");
-            samplePath = Directory.GetParent(path) + "/" + samplePath;
-            node.Sample = LoadImg(samplePath);
+            if (samplePath != null)
+            {
+                samplePath = Directory.GetParent(path) + "/" + samplePath;
+                node.Sample = LoadImg(samplePath);
+                node.Children = null;
+            }
+            else
+            {
+                node.Sample = null;
+            }
 
             //load adjacenties
             var adjacentiesList = content.Value<JObject>("adjacenties");
@@ -40,6 +48,10 @@ public class JSONParser
             //load color
             int[] colorVal = content.Value<JArray>("color").ToObject<int[]>();
             node.NodeColor = new Color(colorVal[0], colorVal[1], colorVal[2]);
+
+            //load children list
+            string[] children = content.Value<JArray>("children").ToObject<string[]>();
+            node.Children = children.ToList();
 
             nodes.Add(parentProp.Name, node);
         }

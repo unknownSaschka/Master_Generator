@@ -9,9 +9,8 @@ public class Node
     public List<string> Children;
     public Adjacenties Adjacenties;
     public Texture2D Sample;
-    private Dictionary<int, List<byte[]>> patterns;    //saves all patterns in all sizes
-
-    
+    //private Dictionary<int, List<byte[]>> patterns;    //saves all patterns in all sizes
+    public OverlappingModel OverlappingModel;           //TODO Hier pro Node ein Overlapping Model laden
 }
 
 public class Adjacenties
