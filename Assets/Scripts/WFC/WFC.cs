@@ -72,12 +72,12 @@ public class WFC : MonoBehaviour
 
     public void PrepareModel()
     {
-        currentModel = new OverlappingModel(FromTexture(SampleBitmap), SampleBitmap.width, SampleBitmap.height, SampleSize, Width, Height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
+        currentModel = new OverlappingModel(SampleBitmap.GetBitmap(), SampleBitmap.width, SampleBitmap.height, SampleSize, Width, Height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
     }
 
     public void GeneratePicture()
     {
-        OverlappingModel model = new OverlappingModel(FromTexture(SampleBitmap), SampleBitmap.width, SampleBitmap.height, SampleSize, Width, Height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
+        OverlappingModel model = new OverlappingModel(SampleBitmap.GetBitmap(), SampleBitmap.width, SampleBitmap.height, SampleSize, Width, Height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
         for(int i = 0; i < 10; i++)
         {
             bool success = model.Run(random.Next(), -1) ;
@@ -169,25 +169,6 @@ public class WFC : MonoBehaviour
     {
         var sampleRenderer = gameObject.GetComponent<Renderer>();
         sampleRenderer.sharedMaterial.SetTexture("_MainTex", texture);
-    }
-
-    private int[] FromTexture(Texture2D texture)
-    {
-        Color32[] imageData = texture.GetPixels32();
-
-        //Converts Color32 Array to an int array with bgra32
-        int[] img = new int[texture.width * texture.height];
-        for (int i = 0; i < imageData.Length; i++)
-        {
-            byte[] bytes = new byte[4];
-            bytes[0] = imageData[i].b;
-            bytes[1] = imageData[i].g;
-            bytes[2] = imageData[i].r;
-            bytes[3] = imageData[i].a;
-            img[i] = BitConverter.ToInt32(bytes, 0);
-        }
-
-        return img;
     }
 
     private Texture2D GetTextureFromInt(int[] bitmap)

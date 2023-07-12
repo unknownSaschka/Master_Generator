@@ -32,7 +32,7 @@ public class OverlappingModel : Model
         
         byte[] sample = new byte[bitmap.Length];
 
-        //speichert alle einmaligen Farben heraus
+        //speichert alle einmaligen Farben heraus und indexiert diese in der samples Liste
         colors = new List<int>();
         for (int i = 0; i < sample.Length; i++)
         {
