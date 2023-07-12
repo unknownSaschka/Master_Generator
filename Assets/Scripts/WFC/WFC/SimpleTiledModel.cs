@@ -5,7 +5,7 @@ using System.Linq;
 using System.Xml.Linq;
 using System.Collections.Generic;
 
-class SimpleTiledModel : Model
+class SimpleTiledModel : NewModel
 {
     List<int[]> tiles;
     List<string> tilenames;

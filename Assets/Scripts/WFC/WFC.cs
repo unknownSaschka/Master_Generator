@@ -31,7 +31,7 @@ public class WFC : MonoBehaviour
     public bool Periodic;
     public int Symmetry;
     public bool Ground;
-    public Model.Heuristic Heuristic;
+    public NewModel.Heuristic Heuristic;
 
     private OverlappingModel currentModel;
 

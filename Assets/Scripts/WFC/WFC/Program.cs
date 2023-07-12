@@ -17,7 +17,7 @@ static class Program
 
         foreach (XElement xelem in xdoc.Root.Elements("overlapping", "simpletiled"))
         {
-            Model model;
+            NewModel model;
             string name = xelem.Get<string>("name");
             Console.WriteLine($"< {name}");
 
@@ -27,7 +27,7 @@ static class Program
             int height = xelem.Get("height", size);
             bool periodic = xelem.Get("periodic", false);
             string heuristicString = xelem.Get<string>("heuristic");
-            var heuristic = heuristicString == "Scanline" ? Model.Heuristic.Scanline : (heuristicString == "MRV" ? Model.Heuristic.MRV : Model.Heuristic.Entropy);
+            var heuristic = heuristicString == "Scanline" ? NewModel.Heuristic.Scanline : (heuristicString == "MRV" ? NewModel.Heuristic.MRV : NewModel.Heuristic.Entropy);
 
             if (isOverlapping)
             {

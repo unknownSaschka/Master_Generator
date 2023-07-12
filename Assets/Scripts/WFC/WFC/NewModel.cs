@@ -4,14 +4,20 @@ using System;
 using System.Collections.Generic;
 //using UnityEngine;
 
-public abstract class Model
+public abstract class NewModel
 {
+    //------------ADDITIONS-----------------------
+
+    protected Dictionary<string, List<int>> patternLibrary;
+
+    //--------------------------------------------
 
     //[Position im Feld][Anzahl aller Patterns]
     protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
 
     // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] Farbwert
-    protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
+    //protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
+    protected Dictionary<string, int[][][]> propagator;
 
     //[Position im Feld][Anzahl aller Patterns][Himmelsrichtung] Farbwert
     int[][][] compatible;               //Anzahl der noch kompatiblen Patterns. Wie viele Patterns sind an einer bestimmten Stelle mit einem bestimmten Pattern in eine bestimmte Himmelsrichtung noch kompatibel
@@ -21,13 +27,14 @@ public abstract class Model
 
     //[Anzahl Positionen mal Anzahl Pattern] (Position Feld, PatternID)
     (int, int)[] stack;                 //Stack, auf den alle noch zu prüfenden Tiles (Position mit PatternID) draufgeschoben werden
-    int stacksize, observedSoFar;
+    int stacksize, observedSoFar;       
 
     protected int MX, MY, T, N;         //T ist die Anzahl an Patterns
     protected bool periodic, ground;    //periodic: wrapping um den Rand des Feldes herum, ground: ?
 
     //[Anzahl aller Patterns]
-    protected double[] weights;         //Gewichtung aller jeweiligen Patterns. Umso öfter ein Pattern beim Sample vorkam, desto höher ist die Gewichtung
+    //protected double[] weights;         //Gewichtung aller jeweiligen Patterns. Umso öfter ein Pattern beim Sample vorkam, desto höher ist die Gewichtung
+    protected Dictionary<string, double[]> weights;
     double[] weightLogWeights, distribution;    //Gewichtete Gewichtsverteilung
 
     //[Position im Feld] Länge des Gewichtungs Arrays
@@ -39,7 +46,7 @@ public abstract class Model
     public enum Heuristic { Entropy, MRV, Scanline };
     Heuristic heuristic;
 
-    protected Model(int width, int height, int N, bool periodic, Heuristic heuristic)
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic)
     {
         MX = width;
         MY = height;
@@ -59,7 +66,7 @@ public abstract class Model
 
             for (int t = 0; t < T; t++)
             {
-                compatible[i][t] = new int[4];
+                compatible[i][t] = new int[4];      
             }
         }
         distribution = new double[T];
@@ -113,10 +120,10 @@ public abstract class Model
                 {
                     for (int t = 0; t < T; t++)
                     {
-                        if (wave[i][t])
-                        {
+                        if (wave[i][t]) 
+                        { 
                             observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
-                            break;
+                            break; 
                         }
                     }
                 }
@@ -246,10 +253,10 @@ public abstract class Model
                 if (y2 < 0) y2 += MY;
                 else if (y2 >= MY) y2 -= MY;
 
-
+                
                 int i2 = x2 + y2 * MX;              //2-dim position wieder in 1-dim position umwandeln
                 int[] p = propagator[d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
-                int[][] compat = compatible[i2];
+                int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
                 {
