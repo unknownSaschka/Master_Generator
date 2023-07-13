@@ -2,13 +2,16 @@
 
 using System;
 using System.Collections.Generic;
+using static Helper;
 //using UnityEngine;
 
 public abstract class NewModel
 {
     //------------ADDITIONS-----------------------
 
-    protected Dictionary<string, List<int>> patternLibrary;
+    //protected Dictionary<string, List<int>> patternLibrary;
+    protected List<string> nodeNames;
+    protected string[] inputField;
 
     //--------------------------------------------
 
@@ -26,24 +29,35 @@ public abstract class NewModel
     protected int[] observed;           //Nachdem der WFC durchgelaufen ist, werden für jede Position das resultiernde Pattern gesetzt
 
     //[Anzahl Positionen mal Anzahl Pattern] (Position Feld, PatternID)
-    (int, int)[] stack;                 //Stack, auf den alle noch zu prüfenden Tiles (Position mit PatternID) draufgeschoben werden
-    int stacksize, observedSoFar;       
+    //(int, int)[] stack;                 //Stack, auf den alle noch zu prüfenden Tiles (Position mit PatternID) draufgeschoben werden
+    List<(int, int)> stack;
+    //int stacksize, observedSoFar;
+    int observedSoFar;
 
-    protected int MX, MY, T, N;         //T ist die Anzahl an Patterns
+    protected int MX, MY, N;         //T ist die Anzahl an Patterns, N ?
+    protected Dictionary<string, int> T;
     protected bool periodic, ground;    //periodic: wrapping um den Rand des Feldes herum, ground: ?
 
     //[Anzahl aller Patterns]
     //protected double[] weights;         //Gewichtung aller jeweiligen Patterns. Umso öfter ein Pattern beim Sample vorkam, desto höher ist die Gewichtung
     protected Dictionary<string, double[]> weights;
-    double[] weightLogWeights, distribution;    //Gewichtete Gewichtsverteilung
+    //double[] weightLogWeights, distribution;    //Gewichtete Gewichtsverteilung
+    protected Dictionary<string, double[]> weightLogWeights;
+    protected Dictionary<string, double[]> distribution;
 
     //[Position im Feld] Länge des Gewichtungs Arrays
     protected int[] sumsOfOnes;         //Für jedes Pattern, das auf einer Position gebannt wird, wird die Variable um eins herunter gezählt, da sich die verteilung auch ändert
-    double sumOfWeights, sumOfWeightLogWeights, startingEntropy;
-    //[Positionen im Feld]
-    protected double[] sumsOfWeights, sumsOfWeightLogWeights, entropies;
 
-    public enum Heuristic { Entropy, MRV, Scanline };
+    Dictionary<string, double> sumOfWeights;
+    Dictionary<string, double> sumOfWeightLogWeights;
+    Dictionary<string, double> startingEntropy;        //WICHTIG: Diese wichtig pro Node oder geht global?
+
+    //[Positionen im Feld]
+    protected double[] sumsOfWeights;
+    protected double[] sumsOfWeightLogWeights;
+    protected double[] entropies;
+
+    
     Heuristic heuristic;
 
     protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic)
@@ -58,40 +72,58 @@ public abstract class NewModel
     void Init()
     {
         wave = new bool[MX * MY][];                 //erste Dimension sind alle Tiles des Feldes
+        //Diese immer pro Pixel von Input Grafik ziehen
         compatible = new int[wave.Length][][];      //erste Dimension auch alle Tiles des Feldes
+        distribution = new();
+        weightLogWeights = new();
+        sumOfWeights = new();
+        sumOfWeightLogWeights = new();
+        observed = new int[MX * MY];
+        startingEntropy = new();
+
         for (int i = 0; i < wave.Length; i++)
         {
-            wave[i] = new bool[T];                  //zweite Dimension sind alle Patterns die existieren
-            compatible[i] = new int[T][];           //auch hier in der zweiten Dimension alle existierenden Tiles
+            string nodeName = inputField[i];
+            wave[i] = new bool[T[nodeName]];                  //zweite Dimension sind alle Patterns die existieren
+            compatible[i] = new int[T[nodeName]][];           //auch hier in der zweiten Dimension alle existierenden Tiles
 
-            for (int t = 0; t < T; t++)
+            for (int t = 0; t < T[nodeName]; t++)
             {
-                compatible[i][t] = new int[4];      
+                compatible[i][t] = new int[4];
             }
         }
-        distribution = new double[T];
-        observed = new int[MX * MY];
 
-        weightLogWeights = new double[T];
-        sumOfWeights = 0;
-        sumOfWeightLogWeights = 0;
-
-        for (int t = 0; t < T; t++)
+        foreach (string nodeName in nodeNames)
         {
-            weightLogWeights[t] = weights[t] * Math.Log(weights[t]);
-            sumOfWeights += weights[t];
-            sumOfWeightLogWeights += weightLogWeights[t];
-        }
+            //distribution = new double[T];
+            distribution.Add(nodeName, new double[T[nodeName]]);
 
-        startingEntropy = Math.Log(sumOfWeights) - sumOfWeightLogWeights / sumOfWeights;
+            //weightLogWeights = new double[T];
+            //sumOfWeights = 0;
+            //sumOfWeightLogWeights = 0;
+            weightLogWeights.Add(nodeName, new double[T[nodeName]]);
+            sumOfWeights.Add(nodeName, 0);
+            sumOfWeightLogWeights.Add(nodeName, 0);
+
+            for (int t = 0; t < T[nodeName]; t++)
+            {
+                weightLogWeights[nodeName][t] = weights[nodeName][t] * Math.Log(weights[nodeName][t]);
+                sumOfWeights[nodeName] += weights[nodeName][t];
+                sumOfWeightLogWeights[nodeName] += weightLogWeights[nodeName][t];
+            }
+
+
+            startingEntropy.Add(nodeName, Math.Log(sumOfWeights[nodeName]) - sumOfWeightLogWeights[nodeName] / sumOfWeights[nodeName]);
+        }
 
         sumsOfOnes = new int[MX * MY];
         sumsOfWeights = new double[MX * MY];
         sumsOfWeightLogWeights = new double[MX * MY];
         entropies = new double[MX * MY];
 
-        stack = new (int, int)[wave.Length * T];
-        stacksize = 0;
+        //stack = new (int, int)[wave.Length * T];
+        //stacksize = 0;
+        stack = new();
     }
 
     public bool Run(int seed, int limit)
@@ -118,7 +150,8 @@ public abstract class NewModel
             {
                 for (int i = 0; i < wave.Length; i++)
                 {
-                    for (int t = 0; t < T; t++)
+                    string nodeName = inputField[i];
+                    for (int t = 0; t < T[nodeName]; t++)
                     {
                         if (wave[i][t]) 
                         { 
@@ -158,7 +191,8 @@ public abstract class NewModel
         {
             for (int i = 0; i < wave.Length; i++)
             {
-                for (int t = 0; t < T; t++)
+                string nodeName = inputField[i];
+                for (int t = 0; t < T[nodeName]; t++)
                 {
                     if (wave[i][t])
                     {
@@ -219,9 +253,11 @@ public abstract class NewModel
     void Observe(int node, Random random)
     {
         bool[] w = wave[node];
-        for (int t = 0; t < T; t++) distribution[t] = w[t] ? weights[t] : 0.0;      //Setzt die Verteilung aller noch möglichen Tiles in ein neues Array
-        int r = distribution.Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
-        for (int t = 0; t < T; t++)
+        string nodeName = inputField[node];
+
+        for (int t = 0; t < T[nodeName]; t++) distribution[nodeName][t] = w[t] ? weights[nodeName][t] : 0.0;      //Setzt die Verteilung aller noch möglichen Tiles in ein neues Array
+        int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
+        for (int t = 0; t < T[nodeName]; t++)
         {
             if (w[t] != (t == r))                                                   //Alle anderen Tiles außer dem auserwählten Tile werden gebannt, sodass nur noch das Auserwählte Tile übrig bleibt
             {
@@ -232,14 +268,20 @@ public abstract class NewModel
 
     bool Propagate()
     {
-        while (stacksize > 0)       //So lange alle unresolved tiles abarbeiten bis keine mehr vorhanden sind
+        while (stack.Count > 0)       //So lange alle unresolved tiles abarbeiten bis keine mehr vorhanden sind
         {
-            (int i1, int t1) = stack[stacksize - 1];
-            stacksize--;
+            (int i1, int t1) = stack[stack.Count - 1];
+            stack.RemoveAt(stack.Count - 1);
+            //stacksize--;
 
             //x und y Koordiante aus 1-Dimensionalem Array bestimmen
             int x1 = i1 % MX;
             int y1 = i1 / MX;
+
+            string currentNodeName = inputField[i1];
+
+            //ADDITION Master Thesis M1
+            //wenn das benachbarte Tile zu einem anderen CLuster gehört, dieses genauso überspringen als wenn es außerhalb der Map wäre
 
             //prüft alle 4 umliegenden Tiles
             for (int d = 0; d < 4; d++)
@@ -255,7 +297,11 @@ public abstract class NewModel
 
                 
                 int i2 = x2 + y2 * MX;              //2-dim position wieder in 1-dim position umwandeln
-                int[] p = propagator[d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
+                string neighbourNodeName = inputField[i2];
+                if (neighbourNodeName != currentNodeName) continue;                                 //Falls das benachbarte Feld zu einem anderen Cluster gehört, vorerst überspringen
+
+                //current node name ist identisch mit dem nachbar, also kann ich dieses einfach weiter laufen lassen
+                int[] p = propagator[currentNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
                 int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
@@ -278,12 +324,14 @@ public abstract class NewModel
 
         int[] comp = compatible[i][t];
         for (int d = 0; d < 4; d++) comp[d] = 0;
-        stack[stacksize] = (i, t);                  //Für jedes Tile das gebannt wurde, wird dieses auf den Stack geschoben, da alle angrenzenden Tiles nun auch geprüft werden müssen
-        stacksize++;
+        //stack[stacksize] = (i, t);                  //Für jedes Tile das gebannt wurde, wird dieses auf den Stack geschoben, da alle angrenzenden Tiles nun auch geprüft werden müssen
+        //stacksize++;
+        stack.Add((i, t));
+        string nodeName = inputField[i];
 
         sumsOfOnes[i] -= 1;
-        sumsOfWeights[i] -= weights[t];
-        sumsOfWeightLogWeights[i] -= weightLogWeights[t];
+        sumsOfWeights[i] -= weights[nodeName][t];
+        sumsOfWeightLogWeights[i] -= weightLogWeights[nodeName][t];
 
         double sum = sumsOfWeights[i];
         entropies[i] = Math.Log(sum) - sumsOfWeightLogWeights[i] / sum;
@@ -293,16 +341,18 @@ public abstract class NewModel
     {
         for (int i = 0; i < wave.Length; i++)
         {
-            for (int t = 0; t < T; t++)
+            string nodeName = inputField[i];
+            for (int t = 0; t < T[nodeName]; t++)
             {
                 wave[i][t] = true;
-                for (int d = 0; d < 4; d++) compatible[i][t][d] = propagator[opposite[d]][t].Length;    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                for (int d = 0; d < 4; d++) compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
             }
 
-            sumsOfOnes[i] = weights.Length;
-            sumsOfWeights[i] = sumOfWeights;
-            sumsOfWeightLogWeights[i] = sumOfWeightLogWeights;
-            entropies[i] = startingEntropy;
+
+            sumsOfOnes[i] = weights[nodeName].Length;
+            sumsOfWeights[i] = sumOfWeights[nodeName];
+            sumsOfWeightLogWeights[i] = sumOfWeightLogWeights[nodeName];
+            entropies[i] = startingEntropy[nodeName];
             observed[i] = -1;
         }
         observedSoFar = 0;
@@ -311,8 +361,20 @@ public abstract class NewModel
         {
             for (int x = 0; x < MX; x++)
             {
-                for (int t = 0; t < T - 1; t++) Ban(x + (MY - 1) * MX, t);
-                for (int y = 0; y < MY - 1; y++) Ban(x + y * MX, T - 1);
+
+                int mxy1 = x + (MY - 1) * MX;
+                string nodeName1 = inputField[mxy1];
+                for (int t = 0; t < T[nodeName1] - 1; t++)
+                {
+                    Ban(mxy1, t);
+                }
+
+                for (int y = 0; y < MY - 1; y++) 
+                {
+                    int mxy2 = x + y * MX;
+                    string nodeName2 = inputField[mxy2];
+                    Ban(mxy2, T[nodeName2] - 1); 
+                }
             }
             Propagate();
         }

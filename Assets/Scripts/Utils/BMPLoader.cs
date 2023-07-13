@@ -138,6 +138,7 @@ namespace B83.Image.BMP
                 FlipImage();
 
             tex.SetPixels32(imageData);
+            tex.filterMode = FilterMode.Point;
             tex.Apply();
             return tex;
         }

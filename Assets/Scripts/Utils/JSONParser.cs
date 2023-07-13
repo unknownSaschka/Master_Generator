@@ -47,11 +47,12 @@ public class JSONParser
 
             //load color
             int[] colorVal = content.Value<JArray>("color").ToObject<int[]>();
-            node.NodeColor = new Color(colorVal[0], colorVal[1], colorVal[2]);
+            node.NodeColor = new Color32((byte)colorVal[0], (byte)colorVal[1], (byte)colorVal[2], 255);
 
             //load children list
-            string[] children = content.Value<JArray>("children").ToObject<string[]>();
-            node.Children = children.ToList();
+            string[] children = content.Value<JArray>("children")?.ToObject<string[]>();
+            if(children != null) node.Children = children.ToList();
+            else node.Children = null;
 
             nodes.Add(parentProp.Name, node);
         }

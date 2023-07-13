@@ -25,7 +25,7 @@ public class OverlappingModel : Model
     /// <param name="symmetry"></param>
     /// <param name="ground"></param>
     /// <param name="heuristic"></param>
-    public OverlappingModel(int[] bitmap, int SX, int SY, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Heuristic heuristic)
+    public OverlappingModel(int[] bitmap, int SX, int SY, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Helper.Heuristic heuristic)
         : base(width, height, N, periodic, heuristic)
     {
         //var (bitmap, SX, SY) = BitmapHelper.LoadBitmap($"samples/{name}.png");
@@ -120,7 +120,7 @@ public class OverlappingModel : Model
         }
     }
 
-    public OverlappingModel(List<OverlappingModel> models, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic)
+    public OverlappingModel(List<OverlappingModel> models, int N, int width, int height, bool periodic, bool ground, Helper.Heuristic heuristic)
         : base(width, height, N, periodic, heuristic)
     {
         //copy and merging all colors

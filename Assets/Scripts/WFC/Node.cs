@@ -5,7 +5,7 @@ using UnityEngine;
 
 public class Node
 {
-    public Color NodeColor;
+    public Color32 NodeColor;
     public List<string> Children;
     public Adjacenties Adjacenties;
     public Texture2D Sample;

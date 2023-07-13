@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using static Helper;
 //using UnityEngine;
 
 public abstract class Model
@@ -36,7 +37,7 @@ public abstract class Model
     //[Positionen im Feld]
     protected double[] sumsOfWeights, sumsOfWeightLogWeights, entropies;
 
-    public enum Heuristic { Entropy, MRV, Scanline };
+    //public enum Heuristic { Entropy, MRV, Scanline };
     Heuristic heuristic;
 
     protected Model(int width, int height, int N, bool periodic, Heuristic heuristic)
@@ -213,7 +214,7 @@ public abstract class Model
     {
         bool[] w = wave[node];
         for (int t = 0; t < T; t++) distribution[t] = w[t] ? weights[t] : 0.0;      //Setzt die Verteilung aller noch möglichen Tiles in ein neues Array
-        int r = distribution.Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
+        int r = distribution.Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werden soll
         for (int t = 0; t < T; t++)
         {
             if (w[t] != (t == r))                                                   //Alle anderen Tiles außer dem auserwählten Tile werden gebannt, sodass nur noch das Auserwählte Tile übrig bleibt

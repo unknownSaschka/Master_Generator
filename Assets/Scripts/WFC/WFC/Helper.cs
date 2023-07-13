@@ -10,8 +10,10 @@ using SixLabors.ImageSharp.PixelFormats;
 using B83.Image.BMP;
 using UnityEngine;
 
-static class Helper
+public static class Helper
 {
+    public enum Heuristic { Entropy, MRV, Scanline };
+
     /// <summary>
     /// Gibt anhand der Gewichtungen der einzelnen Elemente des Arrays eine zufällige Position
     /// </summary>

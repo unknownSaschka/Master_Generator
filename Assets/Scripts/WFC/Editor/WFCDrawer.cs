@@ -13,22 +13,6 @@ public class WFCDrawer : Editor
 
         WFC wfc = (WFC)target;
 
-
-        if(wfc.StructureBitmapTexture == null ) 
-        {
-            if (GUILayout.Button("Load Structure"))
-            {
-                wfc.LoadStructure();
-            }
-        }
-        else
-        {
-            if (GUILayout.Button(wfc.StructureBitmapTexture.ToTexture2D(), GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
-            {
-                wfc.LoadStructure();
-            }
-        }
-
         if (wfc.SampleBitmap == null)
         {
             if (GUILayout.Button("Load Sample"))
@@ -43,17 +27,7 @@ public class WFCDrawer : Editor
                 wfc.LoadSample();
             }
         }
-
-        if (GUILayout.Button("Load Graph"))
-        {
-            string newJSONPath = EditorUtility.OpenFilePanel("Select Graph JSON", "", "json");
-            if(newJSONPath.Length > 0)
-            {
-                wfc.GraphPath = newJSONPath;
-            }
-
-            wfc.LoadJSON();
-        }
+        
 
         if (GUILayout.Button("Generate"))
         {
@@ -68,6 +42,44 @@ public class WFCDrawer : Editor
         if (GUILayout.Button("Stepped Generate"))
         {
             wfc.SteppedGenerate();
+        }
+
+        GUILayout.Label("New Variant");
+
+        if (GUILayout.Button("Load Graph"))
+        {
+            string newJSONPath = EditorUtility.OpenFilePanel("Select Graph JSON", "", "json");
+            if (newJSONPath.Length > 0)
+            {
+                wfc.GraphPath = newJSONPath;
+            }
+
+            wfc.LoadJSON();
+        }
+
+        if (wfc.StructureBitmapTexture == null)
+        {
+            if (GUILayout.Button("Load Structure"))
+            {
+                wfc.LoadStructure();
+            }
+        }
+        else
+        {
+            if (GUILayout.Button(wfc.StructureBitmapTexture, GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
+            {
+                wfc.LoadStructure();
+            }
+        }
+
+        if(GUILayout.Button("Prepare Clustered"))
+        {
+            wfc.PrepareClusteredOverlapping();
+        }
+
+        if(GUILayout.Button("Generate Clustered"))
+        {
+            wfc.GenerateClusteredOverlapping();
         }
     }
 

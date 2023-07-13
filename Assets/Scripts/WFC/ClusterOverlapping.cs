@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using static Helper;
 
 public class ClusterOverlapping : NewModel
 {
@@ -20,9 +21,17 @@ public class ClusterOverlapping : NewModel
         colors = new();
         patterns = new();
         weights = new();
+        propagator = new();
 
-        foreach(var node in nodes)
+        nodeNames = new();
+        T = new();
+
+        Dictionary<Color32, string> inputFieldColors = new();
+
+        foreach (var node in nodes)
         {
+            nodeNames.Add(node.Key);
+            inputFieldColors.Add(node.Value.NodeColor, node.Key);
             int[] nodeBitmap = node.Value.Sample.GetBitmap();
             int sx = node.Value.Sample.width;
             int sy = node.Value.Sample.height;
@@ -40,13 +49,14 @@ public class ClusterOverlapping : NewModel
                 for(; k < nodeColors.Count; k++)
                 {
                     if (nodeColors[k] == color) break;
-                    if(k == nodeColors.Count) nodeColors.Add(color);
-                    nodeSample[i] = (byte)k;
                 }
+
+                if (k == nodeColors.Count) nodeColors.Add(color);
+                nodeSample[i] = (byte)k;
             }
 
             //samples.Add(node.Key, nodeSample);
-
+            colors.Add(node.Key, nodeColors);
 
             List<byte[]> nodePatterns = new();
             Dictionary<long, int> patternIndices = new();
@@ -87,9 +97,10 @@ public class ClusterOverlapping : NewModel
                     }
                 }
             }
+            patterns.Add(node.Key, nodePatterns);
 
             weights.Add(node.Key, weightList.ToArray());     //Gewichtung, wie oft ein pattern vorkam
-            T = weightList.Count;
+            T.Add(node.Key, weightList.Count);
             this.ground = ground;
 
             //get all patterns and save them for each node (needs all colors to calculate hashes)
@@ -99,11 +110,11 @@ public class ClusterOverlapping : NewModel
             int[][][] nodePropagator = new int[4][][];
             for (int d = 0; d < 4; d++)
             {
-                nodePropagator[d] = new int[T][];   //T ist die Anzahl an einmaligen Patterns
-                for (int t = 0; t < T; t++)
+                nodePropagator[d] = new int[T[node.Key]][];   //T ist die Anzahl an einmaligen Patterns
+                for (int t = 0; t < T[node.Key]; t++)
                 {
                     List<int> list = new();
-                    for (int t2 = 0; t2 < T; t2++)
+                    for (int t2 = 0; t2 < T[node.Key]; t2++)
                     {
                         if (agrees(nodePatterns[t], nodePatterns[t2], dx[d], dy[d], N)) list.Add(t2);
                     }
@@ -117,6 +128,23 @@ public class ClusterOverlapping : NewModel
             }
             propagator.Add(node.Key, nodePropagator);
         }
+
+        //preparing lookup for user given input field
+        List<string> inputFieldList = new();
+
+        foreach(Color32 tile in clusterMap.GetPixels32())
+        {
+            if(inputFieldColors.TryGetValue(tile, out string nodeName))
+            {
+                inputFieldList.Add(nodeName);
+            }
+            else
+            {
+                inputFieldList.Add("root");
+            }
+        }
+
+        inputField = inputFieldList.ToArray();
     }
 
 
@@ -169,5 +197,61 @@ public class ClusterOverlapping : NewModel
         }
 
         return true;
+    }
+
+    public int[] GenerateBitmap()
+    {
+        int[] bitmap = new int[MX * MY];
+        if (observed[0] >= 0)
+        {
+            for (int y = 0; y < MY; y++)
+            {
+                int dy = y < MY - N + 1 ? 0 : N - 1;
+                for (int x = 0; x < MX; x++)
+                {
+                    int dx = x < MX - N + 1 ? 0 : N - 1;
+
+                    string nodeName = inputField[x + y * MX];
+
+                    var nodeColors = colors[nodeName];
+                    var nodePatterns = patterns[nodeName];
+                    var currentObserved = observed[x - dx + (y - dy) * MX];
+                    var currentPosition = dx + dy * N;
+
+                    bitmap[x + y * MX] = nodeColors[nodePatterns[currentObserved][currentPosition]];
+                }
+            }
+        }
+        else
+        {
+            for (int i = 0; i < wave.Length; i++)
+            {
+                int contributors = 0, r = 0, g = 0, b = 0;
+                int x = i % MX, y = i / MX;
+                for (int dy = 0; dy < N; dy++) for (int dx = 0; dx < N; dx++)
+                    {
+                        int sx = x - dx;
+                        if (sx < 0) sx += MX;
+
+                        int sy = y - dy;
+                        if (sy < 0) sy += MY;
+
+                        int s = sx + sy * MX;
+                        if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) continue;
+                        string nodeName = inputField[s];
+                        for (int t = 0; t < T[nodeName]; t++) if (wave[s][t])
+                            {
+                                contributors++;
+                                int argb = colors[nodeName][patterns[nodeName][t][dx + dy * N]];
+                                r += (argb & 0xff0000) >> 16;
+                                g += (argb & 0xff00) >> 8;
+                                b += argb & 0xff;
+                            }
+                    }
+                bitmap[i] = unchecked((int)0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors);
+            }
+        }
+
+        return bitmap;
     }
 }

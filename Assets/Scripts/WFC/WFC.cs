@@ -12,7 +12,7 @@ public class WFC : MonoBehaviour
     System.Random random = new();
 
     public string StructureBitmapPath;
-    public BMPImage StructureBitmapTexture;
+    public Texture2D StructureBitmapTexture;
 
     public string GraphPath;
     public Dictionary<string, Node> Nodes;
@@ -31,9 +31,11 @@ public class WFC : MonoBehaviour
     public bool Periodic;
     public int Symmetry;
     public bool Ground;
-    public NewModel.Heuristic Heuristic;
+    public Helper.Heuristic Heuristic;
 
     private OverlappingModel currentModel;
+
+    private ClusterOverlapping clusterModel;
 
     public int MilliSecondsWait = 10;
     public int Retries = 20;
@@ -50,18 +52,7 @@ public class WFC : MonoBehaviour
         
     }
 
-    public void LoadJSON()
-    {
-        Nodes = JSONParser.ParseJSON(StructureBitmapPath);
-        
-    }
-
-    public void LoadStructure()
-    {
-        StructureBitmapPath = EditorUtility.OpenFilePanel("Select Bitmap", "", "bmp");
-        StructureBitmapTexture = InputImage.LoadImage(StructureBitmapPath);
-        SetImageOnObject(StructurePlane, StructureBitmapTexture);
-    }
+    
 
     public void LoadSample()
     {
@@ -155,6 +146,46 @@ public class WFC : MonoBehaviour
                 currentModel.InitStepRun();
             }
         }
+    }
+
+    //------------------ NEW VARIANT -------------------------------
+    public void LoadJSON()
+    {
+        Nodes = JSONParser.ParseJSON(GraphPath);
+    }
+
+    public void LoadStructure()
+    {
+        StructureBitmapPath = EditorUtility.OpenFilePanel("Select Bitmap", "", "bmp");
+        StructureBitmapTexture = InputImage.LoadImage(StructureBitmapPath).ToTexture2D();
+        SetImageOnObject(StructurePlane, StructureBitmapTexture);
+        Width = StructureBitmapTexture.width; 
+        Height = StructureBitmapTexture.height;
+    }
+
+    public void PrepareClusteredOverlapping()
+    {
+        Dictionary<string, Node> leafs = new();
+
+        foreach(var node in Nodes)
+        {
+            if(node.Value.Sample == null) continue;
+            leafs.Add(node.Key, node.Value);
+        }
+
+        clusterModel = new ClusterOverlapping(leafs, StructureBitmapTexture, SampleSize, StructureBitmapTexture.width, StructureBitmapTexture.height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
+    }
+
+    public void GenerateClusteredOverlapping()
+    {
+        for(int i = 0; i < 10; i++)
+        {
+            bool success = clusterModel.Run(random.Next(), -1);
+            if (success) break;
+        }
+
+        int[] image = clusterModel.GenerateBitmap();
+        SetImageOnObject(ResultPlane, GetTextureFromInt(image));
     }
 
     public void SetImageOnObject(GameObject gameObject, BMPImage texture)
