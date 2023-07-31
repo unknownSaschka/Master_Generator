@@ -169,7 +169,7 @@ public class WFC : MonoBehaviour
 
         foreach(var node in Nodes)
         {
-            if(node.Value.Sample == null) continue;
+            //if(node.Value.Sample == null) continue;
             leafs.Add(node.Key, node.Value);
         }
 

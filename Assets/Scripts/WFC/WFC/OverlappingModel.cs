@@ -108,80 +108,10 @@ public class OverlappingModel : Model
                 List<int> list = new();
                 for (int t2 = 0; t2 < T; t2++)
                 {
-                    if (agrees(patterns[t], patterns[t2], dx[d], dy[d], N)) list.Add(t2);
-                }
-
-                propagator[d][t] = new int[list.Count];
-                for (int c = 0; c < list.Count; c++)
-                {
-                    propagator[d][t][c] = list[c];
-                }
-            }
-        }
-    }
-
-    public OverlappingModel(List<OverlappingModel> models, int N, int width, int height, bool periodic, bool ground, Helper.Heuristic heuristic)
-        : base(width, height, N, periodic, heuristic)
-    {
-        //copy and merging all colors
-        colors = new();
-        foreach(var model in models)
-        {
-            colors.AddRange(model.colors);
-        }
-
-        colors = colors.Distinct().ToList();        //removes all duplicates in the list
-        int C = colors.Count;
-
-
-        //merging all patterns with checking for uniqueness and new indicing
-        //if patterns will be discarded, also look about the weights
-        patterns = new();
-        Dictionary<long, int> patternIndices = new();
-        List<double> weightList = new();
-        int index = 0;
-        foreach (var model in models)
-        {
-            for(int i = 0; i < model.patterns.Count; i++)
-            {
-                long h = hash(model.patterns[i], C);
-
-                if(patternIndices.TryGetValue(h, out int listIndex))
-                {
-                    //dupicate found
-                    weightList[listIndex] += model.weights[i];      //TODO: Überlegen ob addition richtig ist bei bereits processed gewichtungen
-                }
-                else
-                {
-                    //new entry
-                    patternIndices.Add(h, index);
-                    weightList.Add(model.weights[i]);
-                    patterns.Add(model.patterns[i]);
-                    index++;    //Wird nur hochgezählt falls es keine doppelung gab
-                }
-            }
-        }
-
-        //recalculate all weights again?
-        weights = weightList.ToArray();
-        T = weights.Length;
-        this.ground = ground;
-
-        //create new propagator array
-        //duplicate from the other constructor
-
-        //Bereitet das Feld vor mit allen möglichen Zuständen
-
-        propagator = new int[4][][];    //4 wegen den 4 Seiten die ein Tile hat (oben, rechts, unten, links)
-        for (int d = 0; d < 4; d++)
-        {
-            propagator[d] = new int[T][];   //T ist die Anzahl an einmaligen Patterns
-            for (int t = 0; t < T; t++)
-            {
-                List<int> list = new();
-                for (int t2 = 0; t2 < T; t2++)
-                {
-                    if (agrees(patterns[t], patterns[t2], dx[d], dy[d], N)) list.Add(t2);
+                    if (agrees(patterns[t], patterns[t2], dx[d], dy[d], N))
+                    {
+                        list.Add(t2);
+                    }
                 }
 
                 propagator[d][t] = new int[list.Count];
@@ -194,7 +124,7 @@ public class OverlappingModel : Model
     }
 
     /// <summary>
-    /// Funktion die überprüft, ob zwei Patterns an bestimmten Stellen übereinstimmen
+    /// Funktion die überprüft, ob zwei Patterns an bestimmten Kanten übereinstimmen
     /// </summary>
     /// <param name="p1"></param>
     /// <param name="p2"></param>

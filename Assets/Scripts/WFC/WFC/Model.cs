@@ -11,10 +11,10 @@ public abstract class Model
     //[Position im Feld][Anzahl aller Patterns]
     protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
 
-    // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] Farbwert
+    // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] PatternID
     protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
 
-    //[Position im Feld][Anzahl aller Patterns][Himmelsrichtung] Farbwert
+    //[Position im Feld][Anzahl aller Patterns][Himmelsrichtung] PatternID
     int[][][] compatible;               //Anzahl der noch kompatiblen Patterns. Wie viele Patterns sind an einer bestimmten Stelle mit einem bestimmten Pattern in eine bestimmte Himmelsrichtung noch kompatibel
 
     //[Anzahl der Felder] Tile ID
@@ -266,6 +266,11 @@ public abstract class Model
         return sumsOfOnes[0] > 0;
     }
 
+    /// <summary>
+    /// Bannt ein Pattern an der gegebenen Stelle
+    /// </summary>
+    /// <param name="i">Position im Feld</param>
+    /// <param name="t">PatternID des zu bannenden Patterns</param>
     void Ban(int i, int t)
     {
         wave[i][t] = false;

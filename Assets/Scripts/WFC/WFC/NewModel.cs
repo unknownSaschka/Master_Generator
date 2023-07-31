@@ -18,7 +18,7 @@ public abstract class NewModel
     //[Position im Feld][Anzahl aller Patterns]
     protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
 
-    // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] Farbwert
+    // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] PatternID
     //protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
     protected Dictionary<string, int[][][]> propagator;
 
@@ -34,7 +34,7 @@ public abstract class NewModel
     //int stacksize, observedSoFar;
     int observedSoFar;
 
-    protected int MX, MY, N;         //T ist die Anzahl an Patterns, N ?
+    protected int MX, MY, N;         //T ist die Anzahl an Patterns, N ist Patterngröße
     protected Dictionary<string, int> T;
     protected bool periodic, ground;    //periodic: wrapping um den Rand des Feldes herum, ground: ?
 
