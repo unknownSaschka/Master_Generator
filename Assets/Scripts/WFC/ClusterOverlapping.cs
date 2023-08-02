@@ -12,7 +12,7 @@ public class ClusterOverlapping : NewModel
     //List<int> colors;                               //Eine Liste an Farben für alle Nodes
 
     //List<byte[]> patterns;                          //global/all patterns
-    Dictionary<string, List<byte[]>> patterns;        //per node patterns
+    Dictionary<string, List<byte[]>> patterns;        //per node patterns. Speichert die colorID zu den einzelnen Farben der Elemente des Patterns ab
 
     public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodicInput, bool periodic, int symmetry, bool ground, Heuristic heuristic)
         : base(width, height, N, periodic, heuristic)
@@ -33,15 +33,16 @@ public class ClusterOverlapping : NewModel
 
         foreach (var node in nodes)
         {
+            nodeNames.Add(node.Key);
+            inputFieldColors.Add(node.Value.NodeColor, node.Key);
+
             //Sort the normal Nodes from Leafs and process parent nodes later when all patterns from the leafs are prepared
-            if(node.Value.Sample == null)
+            if (node.Value.Sample == null)
             {
                 toProcess.Add(node);
                 continue;
             }
-
-            nodeNames.Add(node.Key);
-            inputFieldColors.Add(node.Value.NodeColor, node.Key);
+            
             int[] nodeBitmap = node.Value.Sample.GetBitmap();
             int sx = node.Value.Sample.width;
             int sy = node.Value.Sample.height;
@@ -124,7 +125,10 @@ public class ClusterOverlapping : NewModel
         {
             foreach (var node in toProcess.ToArray())
             {
-                if(Combine(node.Key, node.Value.Children)) toProcess.Remove(node);
+                if (Combine(node.Key, node.Value.Children)) 
+                { 
+                    toProcess.Remove(node); 
+                }
             }
         }
 
@@ -217,7 +221,7 @@ public class ClusterOverlapping : NewModel
                     bitmap[x + y * MX] = 0;
 
                     //TODO: Backtracking einführen, da wegen Contradiction teils keine Teile generiert werden können
-                    if (currentObserved < nodePatterns.Count && currentObserved > 0)
+                    if (currentObserved < nodePatterns.Count && currentObserved >= 0)
                     {
                         byte[] p = nodePatterns[currentObserved];
                         byte s = p[currentPosition];
@@ -280,11 +284,12 @@ public class ClusterOverlapping : NewModel
          * 
          */
 
-        List<int> colors;
-        double[] nodeWeights;
+        List<int> nodeColors = new();
+        //double[] nodeWeights;
+        List<double> nodeWeights = new();
 
 
-        //combine propagator
+        //combine propagator and patterns
         List<byte[]> patternList = new();
         int patternCount = 0;
 
@@ -294,11 +299,78 @@ public class ClusterOverlapping : NewModel
             {
                 return false;
             }
-            patternList.AddRange(patterns[nodeName]);   //evtl. nicht so einfach da patternIDs auch beim merging wieder übereinstimmen müssen?
+
+            //patternList.AddRange(patterns[nodeName]);   //evtl. nicht so einfach da patternIDs auch beim merging wieder übereinstimmen müssen?
             patternCount += T[nodeName];
+            //nodeColors.AddRange(colors[nodeName]);
+            nodeWeights.AddRange(weights[nodeName]);
+
+
+            /*
+            var nodePatterns = patterns[nodeName];
+            foreach(byte[] pattern in nodePatterns)
+            {
+                byte[] newPattern = new byte[pattern.Length];
+                for(int i = 0; i < newPattern.Length; i++)
+                {
+                    newPattern[i] = (byte) (pattern[i] + colorIndexAddition);
+                }
+
+                patternList.Add(newPattern);
+            }
+
+            colorIndexAddition += colors[nodeName].Count;
+            */
+
+            List<int> oldNodeColors = colors[nodeName];
+            List<byte[]> oldNodePatterns = patterns[nodeName];
+            Dictionary<int, int> colorTranslation = new();      //first int: old color index, second int: new color index
+
+            foreach(var oldColor in oldNodeColors)
+            {
+                int oldColorIndex = oldNodeColors.IndexOf(oldColor);
+
+                if (nodeColors.Contains(oldColor))
+                {
+                    //nodeColors beinhaltet schon die Farbe -> Farbkonvertierung auf bereits bestehende Farbe und keinen eue Farbe anlegen
+
+                    if(!colorTranslation.ContainsKey(oldColorIndex))
+                    {
+                        //Falls colorTranslation noch nicht die neue Farbtranslation beinhaltet, füge diese hinzu
+                        colorTranslation.Add(oldColorIndex, nodeColors.IndexOf(oldColor));
+                    }
+                }
+                else
+                {
+                    //nodeColors beinhaltet noch nicht die neue Farbe -> Neue Farbe anlegen und falls auch translation noch nicht stattgefunden -> neuen Farbwert anlegen
+
+                    if (!colorTranslation.ContainsKey(oldColorIndex))
+                    {
+                        nodeColors.Add(oldColor);
+                        colorTranslation.Add(oldColorIndex, nodeColors.IndexOf(oldColor));
+                    }
+                }
+            }
+
+            //translate old pattern color IDs to new color IDs
+            foreach (byte[] oldPattern in oldNodePatterns)
+            {
+                byte[] newPattern = new byte[oldPattern.Length];
+                for(int i = 0; i < oldPattern.Length; i++)
+                {
+                    newPattern[i] = (byte) colorTranslation[oldPattern[i]];
+                }
+
+                patternList.Add(newPattern);
+            }
+
         }
+
+
         T.Add(clusterNodeName, patternCount);
         patterns.Add(clusterNodeName, patternList);
+        colors.Add(clusterNodeName, nodeColors);
+        weights.Add(clusterNodeName, nodeWeights.ToArray());
 
         PreparePropagator(clusterNodeName, patternList);
 
