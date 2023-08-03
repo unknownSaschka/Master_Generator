@@ -2,6 +2,7 @@ using B83.Image.BMP;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Threading.Tasks;
 using Unity.VisualScripting;
 using UnityEditor;
@@ -11,18 +12,23 @@ public class WFC : MonoBehaviour
 {
     System.Random random = new();
 
+    public string ImageOutputFolder;
+
     public string StructureBitmapPath;
-    public Texture2D StructureBitmapTexture;
+    public Texture2D PrototypeBitmapTexture;
 
     public string GraphPath;
     public Dictionary<string, Node> Nodes;
+    public string RootNodeName;
 
     public Texture2D SampleBitmap;
     public string SampleBitmapPath;
 
-    public GameObject StructurePlane;
+    public GameObject PrototypePlane;
     public GameObject SamplePlane;
     public GameObject ResultPlane;
+
+    private Texture2D Result;
 
     //TODO Sample List in Node or smth
     public int SampleSize;
@@ -157,10 +163,10 @@ public class WFC : MonoBehaviour
     public void LoadStructure()
     {
         StructureBitmapPath = EditorUtility.OpenFilePanel("Select Bitmap", "", "bmp");
-        StructureBitmapTexture = InputImage.LoadImage(StructureBitmapPath).ToTexture2D();
-        SetImageOnObject(StructurePlane, StructureBitmapTexture);
-        Width = StructureBitmapTexture.width; 
-        Height = StructureBitmapTexture.height;
+        PrototypeBitmapTexture = InputImage.LoadImage(StructureBitmapPath).ToTexture2D();
+        SetImageOnObject(PrototypePlane, PrototypeBitmapTexture);
+        Width = PrototypeBitmapTexture.width; 
+        Height = PrototypeBitmapTexture.height;
     }
 
     public void PrepareClusteredOverlapping()
@@ -173,7 +179,7 @@ public class WFC : MonoBehaviour
             leafs.Add(node.Key, node.Value);
         }
 
-        clusterModel = new ClusterOverlapping(leafs, StructureBitmapTexture, SampleSize, StructureBitmapTexture.width, StructureBitmapTexture.height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
+        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, PeriodicInput, Periodic, Symmetry, Ground, Heuristic);
     }
 
     public void GenerateClusteredOverlapping()
@@ -215,7 +221,22 @@ public class WFC : MonoBehaviour
         resultTexture.SetPixels32(colors);
         resultTexture.filterMode = FilterMode.Point;
         resultTexture.Apply();
+        Result = resultTexture;
 
         return resultTexture;
+    }
+
+    public void ProcessPrototype()
+    {
+        PrototypeParser p = new PrototypeParser();
+        Graph graph = new Graph(Nodes);
+        Texture2D newPrototype = p.ProcessPrototype(PrototypeBitmapTexture, graph, RootNodeName);
+        SetImageOnObject(SamplePlane, newPrototype);
+    }
+
+    public void SaveResult()
+    {
+        var texturePNG = Result.EncodeToPNG();
+        File.WriteAllBytes($"{ImageOutputFolder}Sample N={SampleSize}_{random.Next()}.png", texturePNG);
     }
 }

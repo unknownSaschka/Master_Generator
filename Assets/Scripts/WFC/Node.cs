@@ -11,6 +11,12 @@ public class Node
     public Texture2D Sample;
     //private Dictionary<int, List<byte[]>> patterns;    //saves all patterns in all sizes
     public OverlappingModel OverlappingModel;           //TODO Hier pro Node ein Overlapping Model laden
+
+
+    //LCA Prpblem solving
+    public bool Visited;
+    public int Depth;
+    public string Parent;
 }
 
 public class Adjacenties

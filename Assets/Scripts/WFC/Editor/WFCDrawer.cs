@@ -57,7 +57,7 @@ public class WFCDrawer : Editor
             wfc.LoadJSON();
         }
 
-        if (wfc.StructureBitmapTexture == null)
+        if (wfc.PrototypeBitmapTexture == null)
         {
             if (GUILayout.Button("Load Structure"))
             {
@@ -66,13 +66,18 @@ public class WFCDrawer : Editor
         }
         else
         {
-            if (GUILayout.Button(wfc.StructureBitmapTexture, GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
+            if (GUILayout.Button(wfc.PrototypeBitmapTexture, GUILayout.MinWidth(100), GUILayout.MaxWidth(500), GUILayout.MinHeight(100), GUILayout.MaxHeight(200)))
             {
                 wfc.LoadStructure();
             }
         }
 
-        if(GUILayout.Button("Prepare Clustered"))
+        if (GUILayout.Button("Process Prototype"))
+        {
+            wfc.ProcessPrototype();
+        }
+
+        if (GUILayout.Button("Prepare Clustered"))
         {
             wfc.PrepareClusteredOverlapping();
         }
@@ -80,6 +85,13 @@ public class WFCDrawer : Editor
         if(GUILayout.Button("Generate Clustered"))
         {
             wfc.GenerateClusteredOverlapping();
+        }
+
+        GUILayout.Label("Save Result");
+
+        if (GUILayout.Button("Save Result"))
+        {
+            wfc.SaveResult();
         }
     }
 
