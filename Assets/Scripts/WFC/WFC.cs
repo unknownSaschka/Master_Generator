@@ -232,6 +232,11 @@ public class WFC : MonoBehaviour
         Graph graph = new Graph(Nodes);
         Texture2D newPrototype = p.ProcessPrototype(PrototypeBitmapTexture, graph, RootNodeName);
         SetImageOnObject(SamplePlane, newPrototype);
+
+        //var texturePNG = newPrototype.EncodeToPNG();
+        //File.WriteAllBytes($"{ImageOutputFolder}PrototypeProcessed_{random.Next()}.png", texturePNG);
+
+        PrototypeBitmapTexture = newPrototype;
     }
 
     public void SaveResult()

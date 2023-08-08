@@ -60,7 +60,7 @@ public class PrototypeParser
         if (pixel1.Equals(pixel2)) return false;
 
         colors[x + y * prototype.width] = rootColor;
-        colors[x1 + y1 * prototype.width] = rootColor;
+        //colors[x1 + y1 * prototype.width] = rootColor;
         return true;
     }
 }
