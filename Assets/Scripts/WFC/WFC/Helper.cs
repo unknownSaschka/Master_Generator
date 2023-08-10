@@ -35,6 +35,22 @@ public static class Helper
         return 0;
     }
 
+    //NEW HELPER FOR Random on weights Dictionary
+    public static int Random(this Dictionary<int, double> weights, double r)
+    {
+        double sum = 0;
+        foreach(var weight in weights) sum += weight.Value;
+        double threshold = r * sum;
+
+        double partialSum = 0;
+        foreach(var weight in weights)
+        {
+            partialSum += weight.Value;
+            if(partialSum >= threshold) return weight.Key;
+        }
+        return 0;
+    }
+
     public static long ToPower(this int a, int n)
     {
         long product = 1;

@@ -30,6 +30,14 @@ public class JSONParser
                 samplePath = Directory.GetParent(path) + "/" + samplePath;
                 node.Sample = LoadImg(samplePath);
                 node.Children = null;
+
+                int sym = content.Value<int>("symmetry");
+                if (sym == 0) sym = 2;
+                node.Symmetry = sym;
+
+                bool periodic = content.Value<bool>("periodic");
+                node.Periodic = periodic;
+                
             }
             else
             {
@@ -38,16 +46,28 @@ public class JSONParser
 
             //load adjacenties
             var adjacentiesList = content.Value<JObject>("adjacenties");
-            Adjacenties adjacenties = new Adjacenties();
-            adjacenties.Up = adjacentiesList.Value<JArray>("U").ToObject<List<string>>();
-            adjacenties.Down = adjacentiesList.Value<JArray>("D").ToObject<List<string>>();
-            adjacenties.Left = adjacentiesList.Value<JArray>("L").ToObject<List<string>>();
-            adjacenties.Right = adjacentiesList.Value<JArray>("R").ToObject<List<string>>();
-            node.Adjacenties = adjacenties;
+
+            if (adjacentiesList != null)
+            {
+                Adjacenties adjacenties = new Adjacenties();
+                adjacenties.Up = adjacentiesList.Value<JArray>("U").ToObject<List<string>>();
+                adjacenties.Down = adjacentiesList.Value<JArray>("D").ToObject<List<string>>();
+                adjacenties.Left = adjacentiesList.Value<JArray>("L").ToObject<List<string>>();
+                adjacenties.Right = adjacentiesList.Value<JArray>("R").ToObject<List<string>>();
+                node.Adjacenties = adjacenties;
+            }
 
             //load color
-            int[] colorVal = content.Value<JArray>("color").ToObject<int[]>();
-            node.NodeColor = new Color32((byte)colorVal[0], (byte)colorVal[1], (byte)colorVal[2], 255);
+            int[] colorVal = content.Value<JArray>("color")?.ToObject<int[]>();
+            if(colorVal != null)
+            {
+                node.NodeColor = new Color32((byte)colorVal[0], (byte)colorVal[1], (byte)colorVal[2], 255);
+                node.PrototypePlaceable = true;
+            }
+            else
+            {
+                node.PrototypePlaceable = false;
+            }
 
             //load children list
             string[] children = content.Value<JArray>("children")?.ToObject<string[]>();

@@ -6,11 +6,14 @@ using UnityEngine;
 public class Node
 {
     public Color32 NodeColor;
+    public bool PrototypePlaceable;
     public List<string> Children;
     public Adjacenties Adjacenties;
     public Texture2D Sample;
     //private Dictionary<int, List<byte[]>> patterns;    //saves all patterns in all sizes
     public OverlappingModel OverlappingModel;           //TODO Hier pro Node ein Overlapping Model laden
+    public bool Periodic;
+    public int Symmetry;
 
 
     //LCA Prpblem solving

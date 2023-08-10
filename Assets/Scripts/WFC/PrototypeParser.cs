@@ -17,7 +17,7 @@ public class PrototypeParser
 
         foreach(var node in graph.Nodes)
         {
-            colorMapping.Add(node.Value.NodeColor, node.Key);
+            if(node.Value.PrototypePlaceable) colorMapping.Add(node.Value.NodeColor, node.Key);
             if (node.Key.Equals(rootName))
             {
                 rootColor = node.Value.NodeColor;

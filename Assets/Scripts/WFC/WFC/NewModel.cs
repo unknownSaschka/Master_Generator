@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using static Helper;
 //using UnityEngine;
 
@@ -12,6 +13,8 @@ public abstract class NewModel
     //protected Dictionary<string, List<int>> patternLibrary;
     protected List<string> nodeNames;
     protected string[] inputField;
+    protected Dictionary<string, List<int>> clusterPatterns;   //StartIndex, Element Count (used for pattern and weights)
+    protected int globalPatternCount;
 
     //--------------------------------------------
 
@@ -40,10 +43,12 @@ public abstract class NewModel
 
     //[Anzahl aller Patterns]
     //protected double[] weights;         //Gewichtung aller jeweiligen Patterns. Umso öfter ein Pattern beim Sample vorkam, desto höher ist die Gewichtung
-    protected Dictionary<string, double[]> weights;
+    //protected double[] weights;             //evtl auch als Dictionary<string, Dictionary<int, double>> weights ?
     //double[] weightLogWeights, distribution;    //Gewichtete Gewichtsverteilung
     protected Dictionary<string, double[]> weightLogWeights;
-    protected Dictionary<string, double[]> distribution;
+    //protected Dictionary<string, double[]> distribution;
+    protected Dictionary<string, Dictionary<int, double>> weights;
+    protected Dictionary<string, Dictionary<int, double>> distribution;
 
     //[Position im Feld] Länge des Gewichtungs Arrays
     protected int[] sumsOfOnes;         //Für jedes Pattern, das auf einer Position gebannt wird, wird die Variable um eins herunter gezählt, da sich die verteilung auch ändert
@@ -84,8 +89,10 @@ public abstract class NewModel
         for (int i = 0; i < wave.Length; i++)
         {
             string nodeName = inputField[i];
-            wave[i] = new bool[T[nodeName]];                  //zweite Dimension sind alle Patterns die existieren
-            compatible[i] = new int[T[nodeName]][];           //auch hier in der zweiten Dimension alle existierenden Tiles
+            //wave[i] = new bool[T[nodeName]];                  //zweite Dimension sind alle Patterns die existieren
+            wave[i] = new bool[globalPatternCount];                  //zweite Dimension sind alle Patterns die existieren
+            //compatible[i] = new int[T[nodeName]][];           //auch hier in der zweiten Dimension alle existierenden Tiles
+            compatible[i] = new int[globalPatternCount][];           //auch hier in der zweiten Dimension alle existierenden Tiles
 
             for (int t = 0; t < T[nodeName]; t++)
             {
@@ -96,7 +103,7 @@ public abstract class NewModel
         foreach (string nodeName in nodeNames)
         {
             //distribution = new double[T];
-            distribution.Add(nodeName, new double[T[nodeName]]);
+            distribution.Add(nodeName, new());
 
             //weightLogWeights = new double[T];
             //sumOfWeights = 0;
@@ -105,7 +112,7 @@ public abstract class NewModel
             sumOfWeights.Add(nodeName, 0);
             sumOfWeightLogWeights.Add(nodeName, 0);
 
-            for (int t = 0; t < T[nodeName]; t++)
+            foreach (int t in clusterPatterns[nodeName])
             {
                 weightLogWeights[nodeName][t] = weights[nodeName][t] * Math.Log(weights[nodeName][t]);
                 sumOfWeights[nodeName] += weights[nodeName][t];
@@ -151,12 +158,23 @@ public abstract class NewModel
                 for (int i = 0; i < wave.Length; i++)
                 {
                     string nodeName = inputField[i];
+                    /*
                     for (int t = 0; t < T[nodeName]; t++)
                     {
                         if (wave[i][t]) 
                         { 
                             observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
                             break; 
+                        }
+                    }
+                    */
+
+                    foreach(int patternID in clusterPatterns[nodeName])
+                    {
+                        if (wave[i][patternID])
+                        {
+                            observed[i] = patternID;
+                            break;
                         }
                     }
                 }
@@ -250,18 +268,47 @@ public abstract class NewModel
         return argmin;
     }
 
-    void Observe(int node, Random random)
+    void Observe(int node, Random random)       //node = Position im Feld
     {
         bool[] w = wave[node];
         string nodeName = inputField[node];
 
-        for (int t = 0; t < T[nodeName]; t++) distribution[nodeName][t] = w[t] ? weights[nodeName][t] : 0.0;      //Setzt die Verteilung aller noch möglichen Tiles in ein neues Array
+
+        /*
+        for (int t = 0; t < ; t++)
+        { 
+            distribution[nodeName][t] = w[t] ? weights[t] : 0.0;      //Setzt die Verteilung aller noch möglichen Tiles in ein neues Array
+            //evtl. falls es das Pattern in dem Cluster nicht gibt und dennoch drüberiteriert wird, einfach -1 sagen?
+        }
+        */
+
+        foreach(var weight in weights[nodeName])
+        {
+            if (!distribution[nodeName].ContainsKey(weight.Key)) 
+            {
+                distribution[nodeName].Add(weight.Key, 0.0);
+            }
+
+            distribution[nodeName][weight.Key] = w[node] ? weight.Value : 0.0;
+        }
+
         int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
+
+        /*
         for (int t = 0; t < T[nodeName]; t++)
         {
             if (w[t] != (t == r))                                                   //Alle anderen Tiles außer dem auserwählten Tile werden gebannt, sodass nur noch das Auserwählte Tile übrig bleibt
             {
                 Ban(node, t);
+            }
+        }
+        */
+
+        foreach(int patternID in clusterPatterns[nodeName])
+        {
+            if (w[patternID] != (patternID == r))
+            {
+                Ban(node, patternID);
             }
         }
     }
@@ -298,16 +345,24 @@ public abstract class NewModel
                 
                 int i2 = x2 + y2 * MX;              //2-dim position wieder in 1-dim position umwandeln
                 string neighbourNodeName = inputField[i2];
-                if (neighbourNodeName != currentNodeName) continue;                                 //Falls das benachbarte Feld zu einem anderen Cluster gehört, vorerst überspringen
+                //if (neighbourNodeName != currentNodeName) continue;                                 //Falls das benachbarte Feld zu einem anderen Cluster gehört, vorerst überspringen
 
                 //current node name ist identisch mit dem nachbar, also kann ich dieses einfach weiter laufen lassen
                 int[] p = propagator[currentNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
+
+
+                //TESTING: if p == 0 skip, because pattern isn't available
+                if (p == null) continue;
+
                 int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
                 {
                     int t2 = p[l];
-                    int[] comp = compat[t2];        //TODO Hier morgen weitermachen
+                    int[] comp = compat[t2];
+
+                    //Auch hier, wenns das Pattern generell nicht gibt, überspringen erstmal
+                    if(comp == null) continue;
 
                     comp[d]--;
                     if (comp[d] == 0) Ban(i2, t2);
@@ -318,7 +373,7 @@ public abstract class NewModel
         return sumsOfOnes[0] > 0;
     }
 
-    void Ban(int i, int t)
+    void Ban(int i, int t)      //i = Position im Feld, t = PatternID
     {
         wave[i][t] = false;
 
@@ -342,14 +397,22 @@ public abstract class NewModel
         for (int i = 0; i < wave.Length; i++)
         {
             string nodeName = inputField[i];
+            /*
             for (int t = 0; t < T[nodeName]; t++)
             {
                 wave[i][t] = true;
                 for (int d = 0; d < 4; d++) compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
             }
+            */
+
+            //ADDITION
+            foreach(var t in clusterPatterns[nodeName])
+            {
+                 wave[i][t] = true;      //Wird behandelt: Wenn wave null ist, dann gibt es dieses pattern für den Cluster vorerst gar nicht
+            }
 
 
-            sumsOfOnes[i] = weights[nodeName].Length;
+            sumsOfOnes[i] = T[nodeName];
             sumsOfWeights[i] = sumOfWeights[nodeName];
             sumsOfWeightLogWeights[i] = sumOfWeightLogWeights[nodeName];
             entropies[i] = startingEntropy[nodeName];
@@ -378,6 +441,18 @@ public abstract class NewModel
             }
             Propagate();
         }
+    }
+
+    protected Dictionary<int, double> GetWeightsOfNode(string nodeName)
+    {
+        Dictionary<int, double> weightDic = new();
+
+        foreach(var patternID in clusterPatterns[nodeName])
+        {
+             weightDic.Add(patternID, weights[nodeName][patternID]);
+        }
+
+        return weightDic;
     }
 
     public abstract void Save(string filename);
