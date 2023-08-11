@@ -31,6 +31,7 @@ public class WFC : MonoBehaviour
     private Texture2D Result;
 
     //TODO Sample List in Node or smth
+    public int Limit;
     public int SampleSize;
     public int Width, Height;
     public bool PeriodicInput;
@@ -186,7 +187,7 @@ public class WFC : MonoBehaviour
     {
         for(int i = 0; i < 10; i++)
         {
-            bool success = clusterModel.Run(random.Next(), -1);
+            bool success = clusterModel.Run(random.Next(), Limit);
             if (success) break;
         }
 

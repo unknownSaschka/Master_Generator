@@ -257,6 +257,7 @@ public class ClusterOverlapping : NewModel
         int[] bitmap = new int[MX * MY];
         if (observed[0] >= 0)
         {
+            Debug.Log("Generate Bitmap for Finished");
             for (int y = 0; y < MY; y++)
             {
                 int dy = y < MY - N + 1 ? 0 : N - 1;
@@ -264,7 +265,7 @@ public class ClusterOverlapping : NewModel
                 {
                     int dx = x < MX - N + 1 ? 0 : N - 1;
 
-                    string nodeName = inputField[x + y * MX];
+                    //string nodeName = inputField[x + y * MX];
 
                     //var nodeColors = colors[nodeName];
                     //var nodePatterns = patterns[nodeName];
@@ -290,6 +291,7 @@ public class ClusterOverlapping : NewModel
         }
         else
         {
+            Debug.Log("Generate Bitmap for Unfinished");
             for (int i = 0; i < wave.Length; i++)
             {
                 int contributors = 0, r = 0, g = 0, b = 0;
@@ -305,6 +307,18 @@ public class ClusterOverlapping : NewModel
                         int s = sx + sy * MX;
                         if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) continue;
                         string nodeName = inputField[s];
+                        foreach(var entry in wave[s])
+                        {
+                            if (entry.Value)
+                            {
+                                contributors++;
+                                int argb = colors[patterns[entry.Key][dx + dy * N]];
+                                r += (argb & 0xff0000) >> 16;
+                                g += (argb & 0xff00) >> 8;
+                                b += argb & 0xff;
+                            }
+                        }
+                        /*
                         for (int t = 0; t < globalPatternCount; t++)
                         {
                             if (wave[s][t])
@@ -316,8 +330,18 @@ public class ClusterOverlapping : NewModel
                                 b += argb & 0xff;
                             }
                         }
+                        */
                     }
-                bitmap[i] = unchecked((int)0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors);
+
+                if(contributors == 0)
+                {
+                    bitmap[i] = 0;
+                }
+                else
+                {
+                    bitmap[i] = unchecked((int)0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors);
+                }
+                
             }
         }
 

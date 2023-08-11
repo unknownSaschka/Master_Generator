@@ -2,7 +2,9 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Unity.VisualScripting;
+using UnityEngine;
 using static Helper;
 //using UnityEngine;
 
@@ -19,7 +21,8 @@ public abstract class NewModel
     //--------------------------------------------
 
     //[Position im Feld][Anzahl aller Patterns]
-    protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
+    //protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
+    protected Dictionary<int, bool>[] wave;
 
     // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] PatternID
     //protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
@@ -45,7 +48,7 @@ public abstract class NewModel
     //protected double[] weights;         //Gewichtung aller jeweiligen Patterns. Umso öfter ein Pattern beim Sample vorkam, desto höher ist die Gewichtung
     //protected double[] weights;             //evtl auch als Dictionary<string, Dictionary<int, double>> weights ?
     //double[] weightLogWeights, distribution;    //Gewichtete Gewichtsverteilung
-    protected Dictionary<string, double[]> weightLogWeights;
+    protected Dictionary<string, Dictionary<int, double>> weightLogWeights;
     //protected Dictionary<string, double[]> distribution;
     protected Dictionary<string, Dictionary<int, double>> weights;
     protected Dictionary<string, Dictionary<int, double>> distribution;
@@ -76,7 +79,7 @@ public abstract class NewModel
 
     void Init()
     {
-        wave = new bool[MX * MY][];                 //erste Dimension sind alle Tiles des Feldes
+        wave = new Dictionary<int, bool>[MX * MY];                 //erste Dimension sind alle Tiles des Feldes
         //Diese immer pro Pixel von Input Grafik ziehen
         compatible = new int[wave.Length][][];      //erste Dimension auch alle Tiles des Feldes
         distribution = new();
@@ -90,11 +93,19 @@ public abstract class NewModel
         {
             string nodeName = inputField[i];
             //wave[i] = new bool[T[nodeName]];                  //zweite Dimension sind alle Patterns die existieren
-            wave[i] = new bool[globalPatternCount];                  //zweite Dimension sind alle Patterns die existieren
+            //wave[i] = new bool[globalPatternCount];                  //zweite Dimension sind alle Patterns die existieren
+            wave[i] = new Dictionary<int, bool>();
             //compatible[i] = new int[T[nodeName]][];           //auch hier in der zweiten Dimension alle existierenden Tiles
             compatible[i] = new int[globalPatternCount][];           //auch hier in der zweiten Dimension alle existierenden Tiles
 
+            /**
             for (int t = 0; t < T[nodeName]; t++)
+            {
+                compatible[i][t] = new int[4];
+            }
+            */
+
+            for (int t = 0; t < globalPatternCount; t++)
             {
                 compatible[i][t] = new int[4];
             }
@@ -108,13 +119,15 @@ public abstract class NewModel
             //weightLogWeights = new double[T];
             //sumOfWeights = 0;
             //sumOfWeightLogWeights = 0;
-            weightLogWeights.Add(nodeName, new double[T[nodeName]]);
+            weightLogWeights.Add(nodeName, new());
             sumOfWeights.Add(nodeName, 0);
             sumOfWeightLogWeights.Add(nodeName, 0);
 
             foreach (int t in clusterPatterns[nodeName])
             {
-                weightLogWeights[nodeName][t] = weights[nodeName][t] * Math.Log(weights[nodeName][t]);
+                //weightLogWeights[nodeName][t] = weights[nodeName][t] * Math.Log(weights[nodeName][t]);
+                weightLogWeights[nodeName].Add(t, weights[nodeName][t] * Math.Log(weights[nodeName][t]));
+
                 sumOfWeights[nodeName] += weights[nodeName][t];
                 sumOfWeightLogWeights[nodeName] += weightLogWeights[nodeName][t];
             }
@@ -138,7 +151,7 @@ public abstract class NewModel
         if (wave == null) Init();
 
         Clear();
-        Random random = new(seed);
+        System.Random random = new(seed);
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -193,7 +206,7 @@ public abstract class NewModel
         //Random random = new(seed);
     }
 
-    public int StepRun(Random random)
+    public int StepRun(System.Random random)
     {
         int node = NextUnobservedNode(random);
 
@@ -230,7 +243,7 @@ public abstract class NewModel
     /// </summary>
     /// <param name="random"></param>
     /// <returns></returns>
-    int NextUnobservedNode(Random random)
+    int NextUnobservedNode(System.Random random)
     {
         if (heuristic == Heuristic.Scanline)
         {
@@ -265,12 +278,14 @@ public abstract class NewModel
                 }
             }
         }
+        //Debug.Log(argmin);
         return argmin;
     }
 
-    void Observe(int node, Random random)       //node = Position im Feld
+    void Observe(int node, System.Random random)       //node = Position im Feld
     {
-        bool[] w = wave[node];
+        //bool[] w = wave[node];
+        Dictionary<int, bool> w = wave[node];
         string nodeName = inputField[node];
 
 
@@ -289,7 +304,7 @@ public abstract class NewModel
                 distribution[nodeName].Add(weight.Key, 0.0);
             }
 
-            distribution[nodeName][weight.Key] = w[node] ? weight.Value : 0.0;
+            distribution[nodeName][weight.Key] = w[weight.Key] ? weight.Value : 0.0;
         }
 
         int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
@@ -378,6 +393,9 @@ public abstract class NewModel
         wave[i][t] = false;
 
         int[] comp = compatible[i][t];
+
+        if (comp == null) return;       //ID ist nicht verfügbar in diesem Set (Cluster), also kann es auch nicht gebannt werden
+
         for (int d = 0; d < 4; d++) comp[d] = 0;
         //stack[stacksize] = (i, t);                  //Für jedes Tile das gebannt wurde, wird dieses auf den Stack geschoben, da alle angrenzenden Tiles nun auch geprüft werden müssen
         //stacksize++;
@@ -408,7 +426,21 @@ public abstract class NewModel
             //ADDITION
             foreach(var t in clusterPatterns[nodeName])
             {
-                 wave[i][t] = true;      //Wird behandelt: Wenn wave null ist, dann gibt es dieses pattern für den Cluster vorerst gar nicht
+                //wave[i][t] = true;      //Wird behandelt: Wenn wave null ist, dann gibt es dieses pattern für den Cluster vorerst gar nicht
+                if (wave[i].ContainsKey(t))
+                {
+                    wave[i][t] = true;
+                }
+                else
+                {
+                    wave[i].Add(t, true);
+                }
+
+                for(int d = 0; d < 4; d++)
+                {
+                    compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                }
+                
             }
 
 
@@ -427,16 +459,23 @@ public abstract class NewModel
 
                 int mxy1 = x + (MY - 1) * MX;
                 string nodeName1 = inputField[mxy1];
+                /*
                 for (int t = 0; t < T[nodeName1] - 1; t++)
                 {
                     Ban(mxy1, t);
+                }
+                */
+
+                foreach(int patternID in clusterPatterns[nodeName1].SkipLast(1))
+                {
+                    Ban(mxy1, patternID);
                 }
 
                 for (int y = 0; y < MY - 1; y++) 
                 {
                     int mxy2 = x + y * MX;
                     string nodeName2 = inputField[mxy2];
-                    Ban(mxy2, T[nodeName2] - 1); 
+                    Ban(mxy2, clusterPatterns[nodeName2].Last() - 1); 
                 }
             }
             Propagate();
