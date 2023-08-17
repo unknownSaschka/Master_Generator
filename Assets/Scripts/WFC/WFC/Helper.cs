@@ -35,6 +35,23 @@ public static class Helper
         return 0;
     }
 
+    public static Color32[] FlipVertically(this Color32[] colors, int width, int height)
+    {
+        Color32[] toReturn = new Color32[width * height];
+
+        for (int i = 0; i < width * height; i++)
+        {
+            int x = i % width;
+            int y = i / height;
+
+            int newY = height - y - 1;
+
+            toReturn[x + newY * height] = colors[i];
+        }
+
+        return toReturn;
+    }
+
     //NEW HELPER FOR Random on weights Dictionary
     public static int Random(this Dictionary<int, double> weights, double r)
     {

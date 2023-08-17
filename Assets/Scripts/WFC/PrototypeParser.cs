@@ -13,7 +13,7 @@ public class PrototypeParser
         colorMapping = new();
         this.rootName = rootName;
 
-        Color32[] colors = prototype.GetPixels32(); ;
+        Color32[] colors = prototype.GetPixels32();
 
         foreach(var node in graph.Nodes)
         {
@@ -62,5 +62,75 @@ public class PrototypeParser
         colors[x + y * prototype.width] = rootColor;
         //colors[x1 + y1 * prototype.width] = rootColor;
         return true;
+    }
+
+    public Texture2D ExpandTexture(Texture2D oldTexture, int N)
+    {
+        int pixel = N - 1;
+        Texture2D newTexture = new Texture2D(oldTexture.width + pixel, oldTexture.height + pixel);
+        Color32[] colors = oldTexture.GetPixels32();
+        Color32[] newColors = new Color32[newTexture.width * newTexture.height];
+
+        for (int y = 0; y < newTexture.height; y++){
+            for (int x = 0; x < newTexture.width; x++)
+            {
+                //int dx = x < newTexture.width - N + 1 ? 0 : N - 1;
+                //int dy = y > newTexture.height - N + 1 ? 0 : N - 1;
+                int dx = x;
+                int dy1;
+                int dy2;
+
+                dy1 = N - 1;
+                dy2 = y - dy1;
+
+                if(dy2 <= 0)
+                {
+                    dy2 = 0;
+                }
+                
+                if(x >= oldTexture.width)
+                {
+                    dx = oldTexture.width - 1;
+                }
+
+                //newTexture.SetPixel(x, y, colors[x - dx + (y - dy) * oldTexture.width]);
+                newColors[x + y * newTexture.width] = colors[dx + (dy2) * oldTexture.width];
+            }
+        }
+
+        newTexture.SetPixels32(newColors);
+        newTexture.filterMode = FilterMode.Point;
+        newTexture.Apply();
+        return newTexture;
+    }
+
+    public Texture2D CutTexture(Texture2D oldTexture, int N)
+    {
+        int pixel = N - 1;
+        Texture2D newTexture = new Texture2D(oldTexture.width - pixel, oldTexture.height - pixel);
+        Color32[] oldColors = oldTexture.GetPixels32();
+        Color32[] newColors = new Color32[newTexture.width * newTexture.height];
+
+        for (int y = 0; y < oldTexture.height; y++)
+        {
+            for (int x = 0; x < oldTexture.width; x++) 
+            {
+                int dx = x;
+                int dy = y;
+
+                if (dx >= newTexture.width) continue;
+                if (y < pixel) continue;
+
+                if(dy > newTexture.height) dy = newTexture.height + 1;
+
+                newColors[x + (y - pixel) * newTexture.width] = oldColors[x + (dy) * oldTexture.width];
+
+            }
+        }
+
+        newTexture.SetPixels32(newColors);
+        newTexture.filterMode = FilterMode.Point;
+        newTexture.Apply();
+        return newTexture;
     }
 }

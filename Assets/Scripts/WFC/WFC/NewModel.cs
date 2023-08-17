@@ -2,10 +2,12 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Unity.VisualScripting;
 using UnityEngine;
 using static Helper;
+using static UnityEditor.PlayerSettings;
 //using UnityEngine;
 
 public abstract class NewModel
@@ -146,12 +148,12 @@ public abstract class NewModel
         stack = new();
     }
 
-    public bool Run(int seed, int limit)
+    public bool Run(System.Random rng, int limit)
     {
         if (wave == null) Init();
 
         Clear();
-        System.Random random = new(seed);
+        System.Random random = rng;
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -163,7 +165,10 @@ public abstract class NewModel
             {
                 Observe(node, random);
                 bool success = Propagate();
-                if (!success) return false;
+                if (!success)
+                {
+                    return false;
+                }
             }
             //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
             else
@@ -203,39 +208,63 @@ public abstract class NewModel
         if (wave == null) Init();
 
         Clear();
-        //Random random = new(seed);
+        //System.Random random = new(seed);
     }
 
-    public int StepRun(System.Random random)
+    public IEnumerable<bool> StepRun(System.Random random, int limit)
     {
-        int node = NextUnobservedNode(random);
+        //if (wave == null) Init();
 
-        //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
-        if (node >= 0)
+        //Clear();
+        //System.Random random = new(seed);
+
+        //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
+        for (int l = 0; l < limit || limit < 0; l++)
         {
-            Observe(node, random);
-            bool success = Propagate();
-            if (!success) return -1;
-        }
-        //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
-        else
-        {
-            for (int i = 0; i < wave.Length; i++)
+            int node = NextUnobservedNode(random);
+
+            //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
+            if (node >= 0)
             {
-                string nodeName = inputField[i];
-                for (int t = 0; t < T[nodeName]; t++)
+                Observe(node, random);
+                bool success = Propagate();
+                if (!success)
                 {
-                    if (wave[i][t])
-                    {
-                        observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
-                        break;
-                    }
+                    UnityEngine.Debug.Log("False");
+                    yield return false;
                 }
             }
-            return 0;
+            //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
+            else
+            {
+                for (int i = 0; i < wave.Length; i++)
+                {
+                    string nodeName = inputField[i];
+                    /*
+                    for (int t = 0; t < T[nodeName]; t++)
+                    {
+                        if (wave[i][t]) 
+                        { 
+                            observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
+                            break; 
+                        }
+                    }
+                    */
+
+                    foreach (int patternID in clusterPatterns[nodeName])
+                    {
+                        if (wave[i][patternID])
+                        {
+                            observed[i] = patternID;
+                            break;
+                        }
+                    }
+                }
+                yield return true;
+            }
         }
 
-        return 1;
+        yield return true;
     }
 
     /// <summary>
@@ -249,7 +278,8 @@ public abstract class NewModel
         {
             for (int i = observedSoFar; i < wave.Length; i++)
             {
-                if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;
+                if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;      //TESTING FOR LOWER AND RIGHT EDGE
+
                 if (sumsOfOnes[i] > 1)
                 {
                     observedSoFar = i + 1;
@@ -262,10 +292,39 @@ public abstract class NewModel
         double min = 1E+4;
         int argmin = -1;
 
+        int remainingNormal = 0;
+        int remainingRoot = 0;
+
+        for(int i = 0; i < inputField.Length; i++)
+        {
+            string entry = inputField[i];
+            bool available = false;
+
+            foreach (var l in wave[i])
+            {
+                if(l.Value) available = true;
+            }
+
+            //TESTING
+            if ((entry.Equals("grass") || entry.Equals("water")) && available)
+            {
+                remainingNormal++;
+            }
+
+            if (entry.Equals("root") && available)
+            {
+                remainingRoot++;
+            }
+        }
+
         //Geht durch das gesamte Feld und berechnet die Entropie. Dazu wird noise auf die Entropy addiert. Das Feld mit ner niedrigsten Entropy wird zurückgegeben
         for (int i = 0; i < wave.Length; i++)
         {
-            if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;
+            //if(i == 28) Debugger.Break();
+
+            if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;      //TESTING FOR LOWER AND RIGHT EDGE
+            if (remainingNormal > 0 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+
             int remainingValues = sumsOfOnes[i];
             double entropy = heuristic == Heuristic.Entropy ? entropies[i] : remainingValues;
             if (remainingValues > 1 && entropy <= min)
@@ -364,10 +423,10 @@ public abstract class NewModel
 
                 //current node name ist identisch mit dem nachbar, also kann ich dieses einfach weiter laufen lassen
                 int[] p = propagator[currentNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
+                //int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
 
 
                 //TESTING: if p == 0 skip, because pattern isn't available
-                if (p == null) continue;
 
                 int[][] compat = compatible[i2];    
 
@@ -376,12 +435,17 @@ public abstract class NewModel
                     int t2 = p[l];
                     int[] comp = compat[t2];
 
-                    //Auch hier, wenns das Pattern generell nicht gibt, überspringen erstmal
-                    if(comp == null) continue;
-
                     comp[d]--;
                     if (comp[d] == 0) Ban(i2, t2);
                 }
+            }
+        }
+
+        for(int i = 0; i < sumsOfOnes.Length; i++)
+        {
+            if (sumsOfOnes[i] <= 0)
+            {
+                //UnityEngine.Debug.Log("ALARME");
             }
         }
 
@@ -392,9 +456,24 @@ public abstract class NewModel
     {
         wave[i][t] = false;
 
-        int[] comp = compatible[i][t];
+        int contributors = 0;
+        //----------TESTING---------
+        foreach(var entry in wave[i])
+        {
+            if (entry.Value)
+            {
+                contributors++;
+            }
+        }
 
-        if (comp == null) return;       //ID ist nicht verfügbar in diesem Set (Cluster), also kann es auch nicht gebannt werden
+        if(contributors == 0)
+        {
+            //UnityEngine.Debug.Log("ALARME");
+        }
+
+        //--------------------------
+
+        int[] comp = compatible[i][t];
 
         for (int d = 0; d < 4; d++) comp[d] = 0;
         //stack[stacksize] = (i, t);                  //Für jedes Tile das gebannt wurde, wird dieses auf den Stack geschoben, da alle angrenzenden Tiles nun auch geprüft werden müssen
@@ -422,6 +501,8 @@ public abstract class NewModel
                 for (int d = 0; d < 4; d++) compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
             }
             */
+
+            wave[i] = new();
 
             //ADDITION
             foreach(var t in clusterPatterns[nodeName])

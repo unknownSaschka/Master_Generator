@@ -185,14 +185,35 @@ public class WFC : MonoBehaviour
 
     public void GenerateClusteredOverlapping()
     {
-        for(int i = 0; i < 10; i++)
+        for(int i = 0; i < 100; i++)
         {
-            bool success = clusterModel.Run(random.Next(), Limit);
+            //bool success = clusterModel.Run(random.Next(), Limit);
+            bool success = clusterModel.Run(random, Limit);
             if (success) break;
         }
 
         int[] image = clusterModel.GenerateBitmap();
-        SetImageOnObject(ResultPlane, GetTextureFromInt(image));
+        Texture2D result = GetTextureFromInt(image);
+        PrototypeParser p = new PrototypeParser();
+        result = p.CutTexture(result, SampleSize);
+        SetImageOnObject(ResultPlane, result);
+    }
+
+    public async void ClusteredStepGenerate()
+    {
+        clusterModel.InitStepRun();
+
+        foreach (var finish in clusterModel.StepRun(random, Limit))
+        {
+            int[] image = clusterModel.GenerateBitmap();
+            Texture2D result = GetTextureFromInt(image);
+            PrototypeParser p = new PrototypeParser();
+            result = p.CutTexture(result, SampleSize);
+            SetImageOnObject(ResultPlane, result);
+            await Task.Delay(MilliSecondsWait);
+
+            if (finish) break;
+        }
     }
 
     public void SetImageOnObject(GameObject gameObject, BMPImage texture)
@@ -219,7 +240,7 @@ public class WFC : MonoBehaviour
         }
 
         Texture2D resultTexture = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-        resultTexture.SetPixels32(colors);
+        resultTexture.SetPixels32(colors.FlipVertically(Width, Height));
         resultTexture.filterMode = FilterMode.Point;
         resultTexture.Apply();
         Result = resultTexture;
@@ -232,10 +253,13 @@ public class WFC : MonoBehaviour
         PrototypeParser p = new PrototypeParser();
         Graph graph = new Graph(Nodes);
         Texture2D newPrototype = p.ProcessPrototype(PrototypeBitmapTexture, graph, RootNodeName);
+        newPrototype = p.ExpandTexture(newPrototype, SampleSize);
         SetImageOnObject(SamplePlane, newPrototype);
 
         //var texturePNG = newPrototype.EncodeToPNG();
         //File.WriteAllBytes($"{ImageOutputFolder}PrototypeProcessed_{random.Next()}.png", texturePNG);
+        Width = newPrototype.width;
+        Height = newPrototype.height;
 
         PrototypeBitmapTexture = newPrototype;
     }

@@ -87,6 +87,11 @@ public class WFCDrawer : Editor
             wfc.GenerateClusteredOverlapping();
         }
 
+        if (GUILayout.Button("Step Generate Clustered"))
+        {
+            wfc.ClusteredStepGenerate();
+        }
+
         GUILayout.Label("Save Result");
 
         if (GUILayout.Button("Save Result"))

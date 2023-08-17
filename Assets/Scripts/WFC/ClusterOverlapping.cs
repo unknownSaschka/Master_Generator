@@ -188,13 +188,32 @@ public class ClusterOverlapping : NewModel
         //preparing lookup for user given input field
         List<string> inputFieldList = new();
 
-        foreach(Color32 tile in clusterMap.GetPixels32())
+        Color32[] pixels = clusterMap.GetPixels32().FlipVertically(clusterMap.width, clusterMap.height);        //FlipVertically because Unity Texture2D starts lower left but WFC starts upper left
+        inputField = new string[clusterMap.width * clusterMap.height];
+
+        
+        foreach (Color32 tile in pixels)
         {
             if(inputFieldColors.TryGetValue(tile, out string nodeName))
             {
                 inputFieldList.Add(nodeName);
             }
         }
+        
+
+        //inputField = new int[clusterMap.width * clusterMap.height];
+
+        /*
+        for(int i = 0; i < pixels.Length; i++)
+        {
+            int x = i % clusterMap.width;
+            int y = i / clusterMap.height;
+
+            int newY = clusterMap.height - y - 1;
+
+            inputField[x + newY * clusterMap.height] = inputFieldColors[pixels[i]];
+        }
+        */
 
         inputField = inputFieldList.ToArray();
         globalPatternCount = patterns.Count;
@@ -260,9 +279,11 @@ public class ClusterOverlapping : NewModel
             Debug.Log("Generate Bitmap for Finished");
             for (int y = 0; y < MY; y++)
             {
+                //int dy = 0;
                 int dy = y < MY - N + 1 ? 0 : N - 1;
                 for (int x = 0; x < MX; x++)
                 {
+                    //int dx =  0;
                     int dx = x < MX - N + 1 ? 0 : N - 1;
 
                     //string nodeName = inputField[x + y * MX];
@@ -424,6 +445,8 @@ public class ClusterOverlapping : NewModel
 
     private void PreparePropagator(string nodeName, Dictionary<int, byte[]> nodePatterns)
     {
+        //TODO: Nochmal checken ob Propagator richtig aufgesetzt wird
+
         int[][][] nodePropagator = new int[4][][];
         for (int d = 0; d < 4; d++)
         {
