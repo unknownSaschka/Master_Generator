@@ -163,8 +163,10 @@ public abstract class NewModel
             //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
             if (node >= 0)
             {
+                //if (inputField[node].Equals("root")) Debugger.Break();
                 Observe(node, random);
                 bool success = Propagate();
+                //UnityEngine.Debug.Log($"Success: {success}");
                 if (!success)
                 {
                     return false;
@@ -227,6 +229,9 @@ public abstract class NewModel
             if (node >= 0)
             {
                 Observe(node, random);
+
+                
+
                 bool success = Propagate();
                 if (!success)
                 {
@@ -274,11 +279,12 @@ public abstract class NewModel
     /// <returns></returns>
     int NextUnobservedNode(System.Random random)
     {
+        //für heuristische. Wird nicht gebraucht
         if (heuristic == Heuristic.Scanline)
         {
             for (int i = observedSoFar; i < wave.Length; i++)
             {
-                if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;      //TESTING FOR LOWER AND RIGHT EDGE
+                if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;
 
                 if (sumsOfOnes[i] > 1)
                 {
@@ -293,37 +299,39 @@ public abstract class NewModel
         int argmin = -1;
 
         int remainingNormal = 0;
-        int remainingRoot = 0;
 
         for(int i = 0; i < inputField.Length; i++)
         {
             string entry = inputField[i];
-            bool available = false;
+            //bool available = false;
+            int trueAmount = 0;
+
+            int x = i % MX;
+            int y = i / MX;
 
             foreach (var l in wave[i])
             {
-                if(l.Value) available = true;
+                if (!(i % MX + N > MX || i / MX + N > MY))
+                    if (l.Value) trueAmount++;
             }
 
             //TESTING
-            if ((entry.Equals("grass") || entry.Equals("water")) && available)
+            if ((entry.Equals("grass") || entry.Equals("water")) && trueAmount > 1)
             {
                 remainingNormal++;
             }
-
-            if (entry.Equals("root") && available)
-            {
-                remainingRoot++;
-            }
         }
+
+        UnityEngine.Debug.Log($"RemainingNormal:{remainingNormal}");
 
         //Geht durch das gesamte Feld und berechnet die Entropie. Dazu wird noise auf die Entropy addiert. Das Feld mit ner niedrigsten Entropy wird zurückgegeben
         for (int i = 0; i < wave.Length; i++)
         {
             //if(i == 28) Debugger.Break();
 
-            if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;      //TESTING FOR LOWER AND RIGHT EDGE
-            if (remainingNormal > 0 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+            if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;
+            if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+            
 
             int remainingValues = sumsOfOnes[i];
             double entropy = heuristic == Heuristic.Entropy ? entropies[i] : remainingValues;
@@ -338,7 +346,14 @@ public abstract class NewModel
             }
         }
         //Debug.Log(argmin);
+
+        UnityEngine.Debug.Log($"Chose {argmin}");
         return argmin;
+    }
+
+    int NextUnobservedNode2(System.Random random)
+    {
+        return 1;
     }
 
     void Observe(int node, System.Random random)       //node = Position im Feld
@@ -378,8 +393,20 @@ public abstract class NewModel
         }
         */
 
+        /*
         foreach(int patternID in clusterPatterns[nodeName])
         {
+            if (w[patternID] != (patternID == r))
+            {
+                Ban(node, patternID);
+            }
+        }
+        */
+
+        for(int patternID = 0; patternID < globalPatternCount; patternID++)
+        {
+            if (!w.ContainsKey(patternID)) continue;
+
             if (w[patternID] != (patternID == r))
             {
                 Ban(node, patternID);
@@ -417,17 +444,33 @@ public abstract class NewModel
                 else if (y2 >= MY) y2 -= MY;
 
                 
-                int i2 = x2 + y2 * MX;              //2-dim position wieder in 1-dim position umwandeln
+                int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
                 string neighbourNodeName = inputField[i2];
                 //if (neighbourNodeName != currentNodeName) continue;                                 //Falls das benachbarte Feld zu einem anderen Cluster gehört, vorerst überspringen
 
                 //current node name ist identisch mit dem nachbar, also kann ich dieses einfach weiter laufen lassen
-                int[] p = propagator[currentNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
+                int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
                 //int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
 
+                if (neighbourNodeName.Equals("root"))
+                {
+                    //UnityEngine.Debug.Log("root");
+                }
 
                 //TESTING: if p == 0 skip, because pattern isn't available
+                if (p == null)
+                {
+                    continue;
+                }
 
+                /*
+                 * Problembeschreibung:
+                 * Es werden nicht alle Patterns des benachbarten Teils gebannt, falls dieses vom anderen Clustertyp ist (aktuelle ist Graß, benachbart ist Root).
+                 * Evtl dann immer den globalen oder den propagator des benachbarten Tiles nutzen. Letzteres macht mehr Sinn, jedoch sind die Ergebnisse falsch.
+                 * Compatible sollte schonmal mit der richtigen Anzahl des benachbarten Tiles initialisiert werden, auch wenn dies von einem anderen Cluster ist.
+                 */
+
+                //int[][] compat = compatible[i2];    
                 int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
@@ -519,7 +562,42 @@ public abstract class NewModel
 
                 for(int d = 0; d < 4; d++)
                 {
-                    compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                    //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+
+
+                    
+                    //------ADDITION------------
+                    int x1 = i % MX;
+                    int y1 = i / MX;
+
+                    int x2 = x1 + dx[d];
+                    int y2 = y1 + dy[d];
+                    //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+
+                    if (x2 < 0) x2 += MX;
+                    else if (x2 >= MX) x2 -= MX;
+                    if (y2 < 0) y2 += MY;
+                    else if (y2 >= MY) y2 -= MY;
+
+
+                    int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
+                    string neighbourNodeName = inputField[i];
+                    var p = propagator[neighbourNodeName];
+                    var p2 = p[opposite[d]];
+                    var p3 = p2[t];
+
+                    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                    if (p3 == null)
+                    {
+                        compatible[i][t][d] = 0;    //Existiert kein kompatibles Pattern, so setze es auf 0
+                    }
+                    else
+                    {
+                        compatible[i][t][d] = p3.Length;      
+                    }
+                    
+                    
                 }
                 
             }

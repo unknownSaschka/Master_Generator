@@ -185,12 +185,15 @@ public class WFC : MonoBehaviour
 
     public void GenerateClusteredOverlapping()
     {
+        /*
         for(int i = 0; i < 100; i++)
         {
             //bool success = clusterModel.Run(random.Next(), Limit);
             bool success = clusterModel.Run(random, Limit);
             if (success) break;
         }
+        */
+        clusterModel.Run(random, Limit);
 
         int[] image = clusterModel.GenerateBitmap();
         Texture2D result = GetTextureFromInt(image);
