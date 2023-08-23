@@ -173,7 +173,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 1125897948}
+        m_Texture: {fileID: 1922438413}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -246,7 +246,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 115637908}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 10.75, y: 0.25, z: 0}
+  m_LocalPosition: {x: 11, y: 0.25, z: 0}
   m_LocalScale: {x: -1, y: 1, z: -1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -608,7 +608,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 1357440695}
+        m_Texture: {fileID: 1287681787}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
@@ -746,54 +746,6 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!28 &1125897948
-Texture2D:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: 
-  m_ImageContentsHash:
-    serializedVersion: 2
-    Hash: 00000000000000000000000000000000
-  m_ForcedFallbackFormat: 4
-  m_DownscaleFallback: 0
-  m_IsAlphaChannelOptional: 0
-  serializedVersion: 2
-  m_Width: 10
-  m_Height: 10
-  m_CompleteImageSize: 520
-  m_MipsStripped: 0
-  m_TextureFormat: 4
-  m_MipCount: 4
-  m_IsReadable: 1
-  m_IsPreProcessed: 0
-  m_IgnoreMipmapLimit: 0
-  m_MipmapLimitGroupName: 
-  m_StreamingMipmaps: 0
-  m_StreamingMipmapsPriority: 0
-  m_VTOnly: 0
-  m_AlphaIsTransparency: 0
-  m_ImageCount: 1
-  m_TextureDimension: 2
-  m_TextureSettings:
-    serializedVersion: 2
-    m_FilterMode: 0
-    m_Aniso: 1
-    m_MipBias: 0
-    m_WrapU: 0
-    m_WrapV: 0
-    m_WrapW: 0
-  m_LightmapFormat: 0
-  m_ColorSpace: 1
-  m_PlatformBlob: 
-  image data: 520
-  _typelessdata: 0000000000000000000000000000000000000000000000000000000000ab35ff008a81ff008982ff000000000000000000000000000000000000000000000000008b7fff00b915ff008293ff0079a6ff0000000000000000000000000000000000000000000000000053ffff00c300ff0053ffff0053ffff000000000000000000000000000000000000000000936dff00c300ff00c300ff00bf07ff00a446ff000000000000000000000000000000000000000000a73fff00c300ff0053ffff00c300ff009d55ff00000000000000000000000000000000008e75ff009568ff007ba1ff0053ffff00995fff00a73fff00000000000000000000000000000000008e72ff00936aff007f9aff0078aaff00a347ff00000000000000000000000000000000008486ff008781ff008b79ff008b7fff008a81ff00995dff00000000000000000000000000000000008387ff008586ff008882ff008980ff008b7bff0000000000000000000000000000000000000000008683ff008880ff00887fff008b79ff008f6eff0000000000000000000000000000000000000000007b32bf00838eff000000000000000000241b3f00a73fff008292ff0000000000000000007246bf0079a7ff00a83cff000000000021213f008c75ff008291ff004e287f000000000042427f008781ff008b78ff0000000000000000009550f3001e1e3b00716fd700483781
-  m_StreamData:
-    serializedVersion: 2
-    offset: 0
-    size: 0
-    path: 
 --- !u!1 &1178928038
 GameObject:
   m_ObjectHideFlags: 0
@@ -839,8 +791,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   ImageOutputFolder: E:\Studium\Masterarbeit\Bilder\Ergebnisse\
-  StructureBitmapPath: 
-  PrototypeBitmapTexture: {fileID: 1357440695}
+  StructureBitmapPath: E:/Studium/Masterarbeit/WFC Testing/Small/Bitmap15.bmp
+  PrototypeBitmapTexture: {fileID: 1287681787}
   GraphPath: E:/Studium/Masterarbeit/WFC Testing/Small/Graph/graph_small.json
   RootNodeName: root
   SampleBitmap: {fileID: 0}
@@ -858,9 +810,10 @@ MonoBehaviour:
   Ground: 0
   Heuristic: 0
   ExtendedHeuristic: 1
+  CompatibleInit: 1
   MilliSecondsWait: 10
   Retries: 20
---- !u!28 &1357440695
+--- !u!28 &1287681787
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -902,13 +855,13 @@ Texture2D:
   m_ColorSpace: 1
   m_PlatformBlob: 
   image data: 760
-  _typelessdata: 00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff00ff00ff00ff00ff00ff00ff00bf00ff000000ff000000ff00ff00ff00ff00ff00ff00ff003f00ff00003fff00007fff00ff00ff00ff00ff00bf00ff000000ff0000ffff0000ffff00ff00ff00ff00ff003f00ff00007fff0000ffff0000ffff00ff00ff00bf00ff000000ff0000ffff0000ffff0000ffff00ff00ff00ef00ff000000ff00ff00ff007f00ff0000afff00ef00ff000f5fff0000ffff007f00ff
+  _typelessdata: 0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff00007fff007f00ff0000ffff00007fff007f00ff0000ffff00007fff007f00ff0000ffff007f00ff
   m_StreamData:
     serializedVersion: 2
     offset: 0
     size: 0
     path: 
---- !u!28 &1424772467
+--- !u!28 &1546916925
 Texture2D:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -950,7 +903,7 @@ Texture2D:
   m_ColorSpace: 1
   m_PlatformBlob: 
   image data: 520
-  _typelessdata: 00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff000000ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff00ff00ff00ff00ff00ff00ff00bf00ff000000ff00ff00ff00ff00ff00ff00ff003f00ff00003fff00ff00ff00ff00ff00bf00ff000000ff0000ffff00ff00ff00ff00ff003f00ff00007fff0000ffff00ff00ff00bf00ff000000ff0000ffff0000ffff00ff00ff00470bff00f300ff0000b7ff008e30ff
+  _typelessdata: 0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff0000ffff000000ff000000ff00ff00ff00ff00ff000000ff000000ff0000ffff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff0000ffff000000ff00ff00ff000000ff0000ffff00003fff00003fff00003fff00003fff00003fff
   m_StreamData:
     serializedVersion: 2
     offset: 0
@@ -1062,6 +1015,54 @@ MeshFilter:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1557879684}
   m_Mesh: {fileID: 10209, guid: 0000000000000000e000000000000000, type: 0}
+--- !u!28 &1922438413
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: 
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_ForcedFallbackFormat: 4
+  m_DownscaleFallback: 0
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 2
+  m_Width: 10
+  m_Height: 10
+  m_CompleteImageSize: 520
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 4
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 0
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 0
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 0
+    m_WrapV: 0
+    m_WrapW: 0
+  m_LightmapFormat: 0
+  m_ColorSpace: 1
+  m_PlatformBlob: 
+  image data: 520
+  _typelessdata: 00339eff00339eff0053ffff00c300ff00c300ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff0053ffff00c300ff006a00ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff0053ffff00c300ff006a00ff00c300ff00c300ff0053ffff00339eff00339eff0053ffff0053ffff0053ffff00c300ff00c300ff00c300ff00c300ff00c300ff0053ffff0053ffff00339eff0053ffff0053ffff00c300ff00c300ff00c300ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff00c300ff006a00ff00c300ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff00c300ff006a00ff006a00ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff0053ffff006a00ff006a00ff00c300ff00c300ff0053ffff0053ffff0053ffff0053ffff0053ffff0053ffff006a00ff006a00ff00c300ff00c300ff0053ffff00339eff00339eff00339eff0053ffff0053ffff00c300ff00c300ff00c300ff00c300ff0053ffff0053ffff0043ceff008b7fff00ac00ff008b7fff0053ffff0053ffff008b7fff00ac00ff00a73fff0043ceff004be6ff008b7fff00ac00ff00c300ff0053ffff0053ffff006fbfff006a00ff00c300ff0053ffff0043ceff0053ffff009600ff00c300ff004be6ff007c9bff008971ff0061d7ff00a63dff008288ff
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 
 --- !u!21 &2080993179
 Material:
   serializedVersion: 8
@@ -1111,7 +1112,7 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 1424772467}
+        m_Texture: {fileID: 1546916925}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:

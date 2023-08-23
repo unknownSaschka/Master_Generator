@@ -15,6 +15,8 @@ public static class Helper
     public enum Heuristic { Entropy, MRV, Scanline };
     public enum ExtendedHeuristic { Original, LowestNodesFirst }
 
+    public enum CompatibleInit { Original, New }
+
     /// <summary>
     /// Gibt anhand der Gewichtungen der einzelnen Elemente des Arrays eine zufällige Position
     /// </summary>

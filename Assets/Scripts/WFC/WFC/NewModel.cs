@@ -70,8 +70,10 @@ public abstract class NewModel
     
     Heuristic heuristic;
     ExtendedHeuristic extendedHeuristic;
+    CompatibleInit compatibleInit;
+    int remainingNormal = 0;
 
-    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic)
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit)
     {
         MX = width;
         MY = height;
@@ -79,6 +81,7 @@ public abstract class NewModel
         this.periodic = periodic;
         this.heuristic = heuristic;
         this.extendedHeuristic = extendedHeuristic;
+        this.compatibleInit = compInit;
     }
 
     void Init()
@@ -155,6 +158,7 @@ public abstract class NewModel
         if (wave == null) Init();
 
         Clear();
+        InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
         System.Random random = rng;
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
@@ -205,6 +209,63 @@ public abstract class NewModel
         }
 
         return true;
+    }
+
+    public void InitBan()
+    {
+        for(int i = 0; i < wave.Length; i++)
+        {
+            string nodeName = inputField[i];
+            List<int> currentPatternList = clusterPatterns[nodeName];
+
+            if (!nodeName.Equals("root")) continue;
+
+            for (int d = 0; d < 4; d++)
+            {
+                int x1 = i % MX;
+                int y1 = i / MX;
+
+                int x2 = x1 + dx[d];
+                int y2 = y1 + dy[d];
+                //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+
+                if (x2 < 0) x2 += MX;
+                else if (x2 >= MX) x2 -= MX;
+                if (y2 < 0) y2 += MY;
+                else if (y2 >= MY) y2 -= MY;
+
+
+                int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
+                string neighbourNodeName = inputField[i2];
+                if (nodeName.Equals(neighbourNodeName)) continue;       //Wenn Nachbar vom selben Cluster ist, muss nichts gebannt werden da die Menge der verfügbaren Patterns gleich ist
+
+                HashSet<int> set = new();
+                int[][] directionalPatterns = propagator[nodeName][d];
+
+                for (int j = 0; j < globalPatternCount; j++)
+                {
+                    int[] directionalCompatiblePatternIDs = directionalPatterns[j];
+
+                    bool hasMatch = directionalCompatiblePatternIDs.Intersect(clusterPatterns[neighbourNodeName]).Any();
+
+                    if (!hasMatch)
+                    {
+                        set.Add(j);
+                    }
+                }
+
+                //List<int> neighbourPatternList = clusterPatterns[neighbourNodeName];
+                //var toBan = currentPatternList.Except(neighbourPatternList);
+
+                foreach(int t in set)
+                {
+                    Ban(i2, t);
+                }
+            }
+        }
+
+        Propagate();
     }
 
     public void InitStepRun()
@@ -300,7 +361,7 @@ public abstract class NewModel
         double min = 1E+4;
         int argmin = -1;
 
-        int remainingNormal = 0;
+        remainingNormal = 0;
 
         for(int i = 0; i < inputField.Length; i++)
         {
@@ -481,10 +542,17 @@ public abstract class NewModel
 
                 for (int l = 0; l < p.Length; l++)
                 {
+                    if (remainingNormal == 0 && neighbourNodeName != "root")
+                    {
+                        //UnityEngine.Debug.Log("oi");
+                        continue;
+                    }
+
                     int t2 = p[l];
                     int[] comp = compat[t2];
 
                     comp[d]--;
+                    
                     if (comp[d] == 0) Ban(i2, t2);
                 }
             }
@@ -530,6 +598,8 @@ public abstract class NewModel
         stack.Add((i, t));
         string nodeName = inputField[i];
 
+        if (!clusterPatterns[nodeName].Contains(t)) return;     //TESTING
+
         sumsOfOnes[i] -= 1;
         sumsOfWeights[i] -= weights[nodeName][t];
         sumsOfWeightLogWeights[i] -= weightLogWeights[nodeName][t];
@@ -568,41 +638,43 @@ public abstract class NewModel
 
                 for(int d = 0; d < 4; d++)
                 {
-                    compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
-
-                    /*
-                    
-                    //------ADDITION------------
-                    int x1 = i % MX;
-                    int y1 = i / MX;
-
-                    int x2 = x1 + dx[d];
-                    int y2 = y1 + dy[d];
-                    //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
-
-                    if (x2 < 0) x2 += MX;
-                    else if (x2 >= MX) x2 -= MX;
-                    if (y2 < 0) y2 += MY;
-                    else if (y2 >= MY) y2 -= MY;
-
-
-                    int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
-
-                    string neighbourNodeName = inputField[i];
-                    var p = propagator[neighbourNodeName];
-                    var p2 = p[opposite[d]];
-                    var p3 = p2[t];
-
-                    //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
-                    if (p3 == null)
+                    if (compatibleInit == CompatibleInit.Original)
                     {
-                        compatible[i][t][d] = 0;    //Existiert kein kompatibles Pattern, so setze es auf 0
+                        compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
                     }
                     else
                     {
-                        compatible[i][t][d] = p3.Length;      
+                        //------New variant of compatible array init------------
+                        int x1 = i % MX;
+                        int y1 = i / MX;
+
+                        int x2 = x1 + dx[d];
+                        int y2 = y1 + dy[d];
+                        //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+
+                        if (x2 < 0) x2 += MX;
+                        else if (x2 >= MX) x2 -= MX;
+                        if (y2 < 0) y2 += MY;
+                        else if (y2 >= MY) y2 -= MY;
+
+
+                        int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
+                        string neighbourNodeName = inputField[i];
+                        var p = propagator[neighbourNodeName];
+                        var p2 = p[opposite[d]];
+                        var p3 = p2[t];
+
+                        //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                        if (p3 == null)
+                        {
+                            compatible[i][t][d] = 0;    //Existiert kein kompatibles Pattern, so setze es auf 0
+                        }
+                        else
+                        {
+                            compatible[i][t][d] = p3.Length;
+                        }
                     }
-                    */
                     
                 }
                 

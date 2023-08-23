@@ -17,8 +17,8 @@ public class ClusterOverlapping : NewModel
     
 
 
-    public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, ExtendedHeuristic extendedHeuristic)
-        : base(width, height, N, periodic, heuristic, extendedHeuristic)
+    public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit)
+        : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit)
     {
         //load all samples for each node
         //Dictionary<string, byte[]> samples = new();
