@@ -69,14 +69,16 @@ public abstract class NewModel
 
     
     Heuristic heuristic;
+    ExtendedHeuristic extendedHeuristic;
 
-    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic)
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic)
     {
         MX = width;
         MY = height;
         this.N = N;
         this.periodic = periodic;
         this.heuristic = heuristic;
+        this.extendedHeuristic = extendedHeuristic;
     }
 
     void Init()
@@ -330,7 +332,11 @@ public abstract class NewModel
             //if(i == 28) Debugger.Break();
 
             if (!periodic && (i % MX + N > MX || i / MX + N > MY)) continue;
-            if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+
+            if (extendedHeuristic == ExtendedHeuristic.LowestNodesFirst)
+            {
+                if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+            }
             
 
             int remainingValues = sumsOfOnes[i];
@@ -562,9 +568,9 @@ public abstract class NewModel
 
                 for(int d = 0; d < 4; d++)
                 {
-                    //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                    compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
 
-
+                    /*
                     
                     //------ADDITION------------
                     int x1 = i % MX;
@@ -596,7 +602,7 @@ public abstract class NewModel
                     {
                         compatible[i][t][d] = p3.Length;      
                     }
-                    
+                    */
                     
                 }
                 
