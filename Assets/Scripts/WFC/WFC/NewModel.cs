@@ -1,5 +1,6 @@
 ﻿// Copyright (C) 2016 Maxim Gumin, The MIT License (MIT)
 
+using Assets.Scripts.WFC;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -19,6 +20,11 @@ public abstract class NewModel
     protected string[] inputField;
     protected Dictionary<string, List<int>> clusterPatterns;   //StartIndex, Element Count (used for pattern and weights)
     protected int globalPatternCount;
+
+    //Backtracking
+    protected List<ModelState> modelStates;
+    protected int backtrackTries;
+    protected int backtrackTriesCounter;
 
     //--------------------------------------------
 
@@ -73,7 +79,7 @@ public abstract class NewModel
     CompatibleInit compatibleInit;
     int remainingNormal = 0;
 
-    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit)
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit, int backtrackTries)
     {
         MX = width;
         MY = height;
@@ -82,10 +88,12 @@ public abstract class NewModel
         this.heuristic = heuristic;
         this.extendedHeuristic = extendedHeuristic;
         this.compatibleInit = compInit;
+        this.backtrackTries = backtrackTries;
     }
 
     void Init()
     {
+        modelStates = new();
         wave = new Dictionary<int, bool>[MX * MY];                 //erste Dimension sind alle Tiles des Feldes
         //Diese immer pro Pixel von Input Grafik ziehen
         compatible = new int[wave.Length][][];      //erste Dimension auch alle Tiles des Feldes
@@ -159,7 +167,14 @@ public abstract class NewModel
 
         Clear();
         InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
+        CreateBacktrackStep();
         System.Random random = rng;
+
+        bool solvable = isSolvable();
+        if (!solvable)
+        {
+            UnityEngine.Debug.Log("Unsolvable");
+        }
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -176,6 +191,16 @@ public abstract class NewModel
                 if (!success)
                 {
                     return false;
+                    backtrackTriesCounter++;
+                    UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+                    if (backtrackTries < backtrackTriesCounter) return false;
+
+                    //first try to go back one step
+                    BacktrackRestore(1);
+                }
+                else
+                {
+                    CreateBacktrackStep();
                 }
             }
             //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
@@ -273,6 +298,8 @@ public abstract class NewModel
         if (wave == null) Init();
 
         Clear();
+        InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
+        CreateBacktrackStep();
         //System.Random random = new(seed);
     }
 
@@ -383,9 +410,21 @@ public abstract class NewModel
             {
                 remainingNormal++;
             }
+
+            /*
+            if(trueAmount == 0)
+            {
+                return -2;      //If an undecidable piece exist, return -2
+            }
+            */
         }
 
         UnityEngine.Debug.Log($"RemainingNormal:{remainingNormal}");
+
+        if(remainingNormal == 0)
+        {
+
+        }
 
         //Geht durch das gesamte Feld und berechnet die Entropie. Dazu wird noise auf die Entropy addiert. Das Feld mit ner niedrigsten Entropy wird zurückgegeben
         for (int i = 0; i < wave.Length; i++)
@@ -558,15 +597,18 @@ public abstract class NewModel
             }
         }
 
+        bool contradiction = false;
+
         for(int i = 0; i < sumsOfOnes.Length; i++)
         {
             if (sumsOfOnes[i] <= 0)
             {
-                //UnityEngine.Debug.Log("ALARME");
+                contradiction = true;
             }
         }
 
         return sumsOfOnes[0] > 0;
+        //return !contradiction;
     }
 
     void Ban(int i, int t)      //i = Position im Feld, t = PatternID
@@ -688,6 +730,7 @@ public abstract class NewModel
             observed[i] = -1;
         }
         observedSoFar = 0;
+        backtrackTriesCounter = 0;
 
         if (ground)
         {
@@ -719,6 +762,44 @@ public abstract class NewModel
         }
     }
 
+    void CreateBacktrackStep()
+    {
+        ModelState modelState = new ModelState();
+        modelState.wave = new Dictionary<int, bool>[wave.Length];
+        for(int i = 0; i < wave.Length; i++)
+        {
+            modelState.wave[i] = new Dictionary<int, bool>(wave[i]);
+        }
+
+        modelState.compatible = compatible.Clone() as int[][][];
+        modelState.observed = observed.Clone() as int[];
+        modelState.sumOfWeights = new Dictionary<string, double>(sumOfWeights);
+        modelState.sumOfWeightLogWeights = new Dictionary<string, double>(sumOfWeightLogWeights);
+        modelState.sumsOfWeights = sumsOfWeights.Clone() as double[];
+        modelState.sumsOfWeightLogWeights = sumsOfWeightLogWeights.Clone() as double[];
+        modelState.entropies = entropies.Clone() as double[];
+        modelStates.Add(modelState);
+    }
+
+    void BacktrackRestore(int steps)
+    {
+        if (steps > modelStates.Count) steps = 1;
+        ModelState restoreState = modelStates[modelStates.Count - steps];
+
+        if(modelStates.Count > 1) 
+        {
+            modelStates.RemoveRange(modelStates.Count - steps, steps);
+        }
+
+        wave = restoreState.wave;
+        observed = restoreState.observed;
+        sumOfWeights = restoreState.sumOfWeights;
+        sumOfWeightLogWeights = restoreState.sumOfWeightLogWeights;
+        sumsOfWeights = restoreState.sumsOfWeights;
+        sumsOfWeightLogWeights = restoreState.sumsOfWeightLogWeights;
+        entropies = restoreState.entropies;
+    }
+
     protected Dictionary<int, double> GetWeightsOfNode(string nodeName)
     {
         Dictionary<int, double> weightDic = new();
@@ -729,6 +810,27 @@ public abstract class NewModel
         }
 
         return weightDic;
+    }
+
+    private bool isSolvable()
+    {
+        for (int i = 0; i < inputField.Length; i++)
+        {
+            int trueAmount = 0;
+
+            foreach (var l in wave[i])
+            {
+                if (!(i % MX + N > MX || i / MX + N > MY))
+                    if (l.Value) trueAmount++;
+            }
+
+            if (trueAmount == 0)
+            {
+                return false;      //If an undecidable piece exist, return -2
+            }
+        }
+
+        return true;
     }
 
     public abstract void Save(string filename);
