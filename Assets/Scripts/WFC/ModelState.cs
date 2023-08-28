@@ -10,11 +10,15 @@ namespace Assets.Scripts.WFC
     {
         public Dictionary<int, bool>[] wave;
         public int[][][] compatible;
-        public int[] observed;
+        //public int[] observed;
         public Dictionary<string, double> sumOfWeights;
         public Dictionary<string, double> sumOfWeightLogWeights;
         public double[] sumsOfWeights;
         public double[] sumsOfWeightLogWeights;
         public double[] entropies;
+        public int[] sumsOfOnes;
+
+        public int lowestEntropyCount;
+        public double lowestEntropy;
     }
 }

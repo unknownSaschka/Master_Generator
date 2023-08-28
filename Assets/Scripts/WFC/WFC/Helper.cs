@@ -9,6 +9,7 @@ using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
 using B83.Image.BMP;
 using UnityEngine;
+using System;
 
 public static class Helper
 {
@@ -114,5 +115,10 @@ static class BitmapHelper
         */
         Texture2D texture = new Texture2D(width, height, TextureFormat.BGRA32, false);
         //TODO: Gescheites Image Saving machen
+    }
+
+    public static bool AlmostEqualTo(this double value1, double value2)
+    {
+        return Math.Abs(value1 - value2) < 0.0000001;
     }
 }

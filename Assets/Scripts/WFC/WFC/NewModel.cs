@@ -179,7 +179,18 @@ public abstract class NewModel
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
         {
+            if(entropies != null)
+            {
+                //UnityEngine.Debug.Log($"Entropy[0]:{entropies[0]}");
+            }
+
+            if (backtrackTriesCounter > backtrackTries)
+            {
+                return false;
+            }
+
             int node = NextUnobservedNode(random);
+
 
             //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
             if (node >= 0)
@@ -190,19 +201,27 @@ public abstract class NewModel
                 //UnityEngine.Debug.Log($"Success: {success}");
                 if (!success)
                 {
-                    return false;
+                    //return false;
                     backtrackTriesCounter++;
                     UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
                     if (backtrackTries < backtrackTriesCounter) return false;
 
                     //first try to go back one step
-                    BacktrackRestore(1);
+                    BacktrackRestore(-1);
                 }
                 else
                 {
                     CreateBacktrackStep();
                 }
             }
+            
+            else if(node == -2)
+            {
+                BacktrackRestore(-1);
+                backtrackTriesCounter++;
+                UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+            }
+            
             //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
             else
             {
@@ -453,7 +472,13 @@ public abstract class NewModel
         }
         //Debug.Log(argmin);
 
-        UnityEngine.Debug.Log($"Chose {argmin}");
+        //UnityEngine.Debug.Log($"Chose {argmin}");
+
+        if(argmin == -1)
+        {
+            if (!isSolvable()) return -2;
+        }
+
         return argmin;
     }
 
@@ -583,6 +608,7 @@ public abstract class NewModel
                 {
                     if (remainingNormal == 0 && neighbourNodeName != "root")
                     {
+                        //TESTIMG: No banning of already set pieces
                         //UnityEngine.Debug.Log("oi");
                         continue;
                     }
@@ -597,13 +623,13 @@ public abstract class NewModel
             }
         }
 
-        bool contradiction = false;
+        //bool contradiction = false;
 
         for(int i = 0; i < sumsOfOnes.Length; i++)
         {
             if (sumsOfOnes[i] <= 0)
             {
-                contradiction = true;
+                //contradiction = true;
             }
         }
 
@@ -652,6 +678,7 @@ public abstract class NewModel
 
     void Clear()
     {
+        modelStates = new();
         for (int i = 0; i < wave.Length; i++)
         {
             string nodeName = inputField[i];
@@ -771,33 +798,93 @@ public abstract class NewModel
             modelState.wave[i] = new Dictionary<int, bool>(wave[i]);
         }
 
-        modelState.compatible = compatible.Clone() as int[][][];
-        modelState.observed = observed.Clone() as int[];
+        //modelState.compatible = compatible.Clone() as int[][][];
+        modelState.compatible = new int[compatible.Length][][];
+        for(int i = 0; i < compatible.Length; i++)      //Deep copy of jagged array
+        {
+            modelState.compatible[i] = new int[compatible[i].Length][];
+            for(int j = 0; j < compatible[i].Length; j++)
+            {
+                //modelState.compatible[i][j] = compatible[i][j].Clone() as int[];
+                modelState.compatible[i][j] = compatible[i][j].Select(a => a).ToArray();
+            }
+        }
+        //modelState.observed = observed.Clone() as int[];
         modelState.sumOfWeights = new Dictionary<string, double>(sumOfWeights);
         modelState.sumOfWeightLogWeights = new Dictionary<string, double>(sumOfWeightLogWeights);
-        modelState.sumsOfWeights = sumsOfWeights.Clone() as double[];
-        modelState.sumsOfWeightLogWeights = sumsOfWeightLogWeights.Clone() as double[];
-        modelState.entropies = entropies.Clone() as double[];
+        modelState.sumsOfWeights = sumsOfWeights.Select(a => a).ToArray();
+        modelState.sumsOfWeightLogWeights = sumsOfWeightLogWeights.Select(a => a).ToArray();
+        //modelState.entropies = entropies.Clone() as double[];
+        modelState.entropies = entropies.Select(a => a).ToArray();
+        //modelState.sumsOfOnes = sumsOfOnes.Clone() as int[];
+        modelState.sumsOfOnes = sumsOfOnes.Select(a => a).ToArray();
+
+        double lowest = 1E4;
+        int amount = 0;
+        foreach(double entropy in entropies)
+        {
+            if (entropy < lowest)
+            {
+                lowest = entropy;
+                amount = 0;
+            }
+
+            if (entropy.AlmostEqualTo(lowest))
+            {
+                amount++;
+            }
+        }
+
+        modelState.lowestEntropyCount = amount;
+        modelState.lowestEntropy = lowest;
+
         modelStates.Add(modelState);
     }
 
     void BacktrackRestore(int steps)
     {
-        if (steps > modelStates.Count) steps = 1;
-        ModelState restoreState = modelStates[modelStates.Count - steps];
-
-        if(modelStates.Count > 1) 
+        if(steps == -1)
         {
-            modelStates.RemoveRange(modelStates.Count - steps, steps);
+            //If -1, get the last state from the list with more than one possibilities to select
+            if(modelStates.Count > 1)
+            {
+                var lastElement = from s in modelStates where !s.lowestEntropy.AlmostEqualTo(0.0) && s.lowestEntropyCount > 0 select s;
+                ModelState last = lastElement.Last();
+                steps = modelStates.Count - modelStates.IndexOf(last);
+            }
+            else steps = 1;
         }
 
-        wave = restoreState.wave;
-        observed = restoreState.observed;
-        sumOfWeights = restoreState.sumOfWeights;
-        sumOfWeightLogWeights = restoreState.sumOfWeightLogWeights;
-        sumsOfWeights = restoreState.sumsOfWeights;
-        sumsOfWeightLogWeights = restoreState.sumsOfWeightLogWeights;
-        entropies = restoreState.entropies;
+        for(int i = 0; i < steps; i++)
+        {
+            if(modelStates.Count <= 1) break;
+            modelStates.RemoveAt(modelStates.Count - 1);
+        }
+
+        ModelState restoreState = modelStates[modelStates.Count - 1];
+
+        wave = new Dictionary<int, bool>[restoreState.wave.Length];
+        for(int i = 0; i < restoreState.wave.Length; i++)
+        {
+            wave[i] = new Dictionary<int, bool>(restoreState.wave[i]);
+        }
+
+        compatible = new int[restoreState.compatible.Length][][];
+        for(int i = 0; i < restoreState.compatible.Length; i++)
+        {
+            compatible[i] = new int[restoreState.compatible[i].Length][];
+            for(int j = 0; j < restoreState.compatible[i].Length; j++)
+            {
+                compatible[i][j] = restoreState.compatible[i][j].Select(a => a).ToArray();
+            }
+        }
+
+        sumOfWeights = new Dictionary<string, double>(restoreState.sumOfWeights);
+        sumOfWeightLogWeights = new Dictionary<string, double>(restoreState.sumOfWeightLogWeights);
+        sumsOfWeights = restoreState.sumsOfWeights.Select(a => a).ToArray();
+        sumsOfWeightLogWeights = restoreState.sumsOfWeightLogWeights.Select(a => a).ToArray();
+        entropies = restoreState.entropies.Select(a => a).ToArray();
+        sumsOfOnes = restoreState.sumsOfOnes.Select(a => a).ToArray();
     }
 
     protected Dictionary<int, double> GetWeightsOfNode(string nodeName)
@@ -816,17 +903,18 @@ public abstract class NewModel
     {
         for (int i = 0; i < inputField.Length; i++)
         {
+            //if (!(i % MX + N > MX || i / MX + N > MY)) continue;
+
             int trueAmount = 0;
 
             foreach (var l in wave[i])
             {
-                if (!(i % MX + N > MX || i / MX + N > MY))
-                    if (l.Value) trueAmount++;
+                if (l.Value) trueAmount++;
             }
 
             if (trueAmount == 0)
             {
-                return false;      //If an undecidable piece exist, return -2
+                return false;      //If an undecidable piece exist, return false
             }
         }
 
