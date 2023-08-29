@@ -42,6 +42,7 @@ public class WFC : MonoBehaviour
     public Helper.ExtendedHeuristic ExtendedHeuristic;
     public Helper.CompatibleInit CompatibleInit;
     public int BacktrackTries;
+    public bool Backtracking;
 
     private OverlappingModel currentModel;
 
@@ -183,7 +184,7 @@ public class WFC : MonoBehaviour
             leafs.Add(node.Key, node.Value);
         }
 
-        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries);
+        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking);
     }
 
     public void GenerateClusteredOverlapping()

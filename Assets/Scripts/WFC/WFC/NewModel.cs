@@ -78,8 +78,9 @@ public abstract class NewModel
     ExtendedHeuristic extendedHeuristic;
     CompatibleInit compatibleInit;
     int remainingNormal = 0;
+    bool backtracking;
 
-    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit, int backtrackTries)
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit, int backtrackTries, bool backtracking)
     {
         MX = width;
         MY = height;
@@ -89,6 +90,7 @@ public abstract class NewModel
         this.extendedHeuristic = extendedHeuristic;
         this.compatibleInit = compInit;
         this.backtrackTries = backtrackTries;
+        this.backtracking = backtracking;
     }
 
     void Init()
@@ -207,18 +209,24 @@ public abstract class NewModel
                     if (backtrackTries < backtrackTriesCounter) return false;
 
                     //first try to go back one step
-                    BacktrackRestore(-1);
-                }
-                else
-                {
-                    CreateBacktrackStep();
+                    //BacktrackRestore(-1);
+
+                    if (backtracking)
+                    {
+                        backtrackTriesCounter++;
+                        CreateBacktrackStep();
+                    }
+                    else
+                    {
+                        return false;
+                    }
                 }
             }
             
             else if(node == -2)
             {
-                BacktrackRestore(-1);
                 backtrackTriesCounter++;
+                BacktrackRestore(-1);
                 UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
             }
             
@@ -460,6 +468,12 @@ public abstract class NewModel
 
             int remainingValues = sumsOfOnes[i];
             double entropy = heuristic == Heuristic.Entropy ? entropies[i] : remainingValues;
+
+            if(entropy < 0)
+            {
+
+            }
+
             if (remainingValues > 1 && entropy <= min)
             {
                 double noise = 1E-6 * random.NextDouble();
@@ -474,7 +488,7 @@ public abstract class NewModel
 
         //UnityEngine.Debug.Log($"Chose {argmin}");
 
-        if(argmin == -1)
+        if(argmin == -1 && backtracking)
         {
             if (!isSolvable()) return -2;
         }
@@ -670,9 +684,16 @@ public abstract class NewModel
 
         sumsOfOnes[i] -= 1;
         sumsOfWeights[i] -= weights[nodeName][t];
+
+        if (sumsOfWeights[i] == 0)
+        {
+
+        }
+
         sumsOfWeightLogWeights[i] -= weightLogWeights[nodeName][t];
 
         double sum = sumsOfWeights[i];
+
         entropies[i] = Math.Log(sum) - sumsOfWeightLogWeights[i] / sum;
     }
 
@@ -849,10 +870,23 @@ public abstract class NewModel
             if(modelStates.Count > 1)
             {
                 var lastElement = from s in modelStates where !s.lowestEntropy.AlmostEqualTo(0.0) && s.lowestEntropyCount > 0 select s;
-                ModelState last = lastElement.Last();
-                steps = modelStates.Count - modelStates.IndexOf(last);
+                if(lastElement.Count() == 0)
+                {
+                    //steps = modelStates.Count - 1;  //Geh ganz zurück an den Anfang
+                    steps = 10;
+                }
+                else 
+                {
+                    ModelState last = lastElement.Last();
+                    steps = modelStates.Count - modelStates.IndexOf(last);
+                }
             }
             else steps = 1;
+
+            if(backtrackTriesCounter % 50 == 0)
+            {
+                steps = modelStates.Count - 1;
+            }
         }
 
         for(int i = 0; i < steps; i++)

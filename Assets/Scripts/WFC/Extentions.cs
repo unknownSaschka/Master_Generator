@@ -8,6 +8,7 @@ public static class Extentions
     public static int[] GetBitmap(this Texture2D texture)
     {
         Color32[] imageData = texture.GetPixels32();
+        imageData = imageData.FlipVertically(texture.width, texture.height);
 
         //Converts Color32 Array to an int array with bgra32
         int[] img = new int[texture.width * texture.height];
