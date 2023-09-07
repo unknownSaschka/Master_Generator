@@ -30,7 +30,7 @@ public abstract class NewModel
 
     //[Position im Feld][Anzahl aller Patterns]
     //protected bool[][] wave;            //Beinhaltet für das feld alle noch möglichen Tiles
-    protected Dictionary<int, bool>[] wave;
+    public Dictionary<int, bool>[] wave;
 
     // [Himmelsrichtung][Anzahl aller Patterns][Anzahl kompatibler Patterns in diese Himmelsrichtung] PatternID
     //protected int[][][] propagator;     //Wie eine LookUp table: Welche Tiles sind in die jeweilige Richtung das bestimmte Tile erlaubt
@@ -40,7 +40,7 @@ public abstract class NewModel
     int[][][] compatible;               //Anzahl der noch kompatiblen Patterns. Wie viele Patterns sind an einer bestimmten Stelle mit einem bestimmten Pattern in eine bestimmte Himmelsrichtung noch kompatibel
 
     //[Anzahl der Felder] Tile ID
-    protected int[] observed;           //Nachdem der WFC durchgelaufen ist, werden für jede Position das resultiernde Pattern gesetzt
+    public int[] observed;           //Nachdem der WFC durchgelaufen ist, werden für jede Position das resultiernde Pattern gesetzt
 
     //[Anzahl Positionen mal Anzahl Pattern] (Position Feld, PatternID)
     //(int, int)[] stack;                 //Stack, auf den alle noch zu prüfenden Tiles (Position mit PatternID) draufgeschoben werden
@@ -78,9 +78,19 @@ public abstract class NewModel
     ExtendedHeuristic extendedHeuristic;
     CompatibleInit compatibleInit;
     int remainingNormal = 0;
+    public int[] preFinishedObserved = null;
+    public Dictionary<int, bool>[] preFinishedWave = null;
+    protected bool[] preDecided = null;
     bool backtracking;
+    bool clusterBanning;
+    bool banLowerClusterInRoot;
+    List<ModelState> testDebug = new();
+    protected bool[] decided;
 
-    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit, int backtrackTries, bool backtracking)
+    private bool initPhase = false;
+
+    protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit,
+        int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot)
     {
         MX = width;
         MY = height;
@@ -91,6 +101,8 @@ public abstract class NewModel
         this.compatibleInit = compInit;
         this.backtrackTries = backtrackTries;
         this.backtracking = backtracking;
+        this.clusterBanning = clusterBanning;
+        this.banLowerClusterInRoot = banLowerClusterInRoot;
     }
 
     void Init()
@@ -105,6 +117,8 @@ public abstract class NewModel
         sumOfWeightLogWeights = new();
         observed = new int[MX * MY];
         startingEntropy = new();
+
+        decided = new bool[MX * MY];
 
         for (int i = 0; i < wave.Length; i++)
         {
@@ -165,18 +179,26 @@ public abstract class NewModel
 
     public bool Run(System.Random rng, int limit)
     {
-        if (wave == null) Init();
+        //if (wave == null) Init();
+        Init();
 
+        initPhase = true;
         Clear();
-        InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
+        //CreateBacktrackStep(testDebug);
+        if(clusterBanning) InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
+        //CreateBacktrackStep(testDebug);
         CreateBacktrackStep();
+        initPhase = false;
         System.Random random = rng;
 
         bool solvable = isSolvable();
         if (!solvable)
         {
             UnityEngine.Debug.Log("Unsolvable");
+            return false;
         }
+
+        remainingNormal = -1;
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -189,6 +211,32 @@ public abstract class NewModel
             if (backtrackTriesCounter > backtrackTries)
             {
                 return false;
+            }
+
+            if(remainingNormal == 0 && preFinishedObserved == null)
+            {
+                preFinishedObserved = new int[wave.Length];
+                preFinishedWave = new Dictionary<int, bool>[wave.Length];
+                preDecided = decided.Clone() as bool[];
+                for (int i = 0; i < wave.Length; i++)
+                {
+                    string nodeName = inputField[i];
+
+                    //if some tiles are already set, set the patternID for the tile for generating a snapshot picture of the current generation progress
+                    if (decided[i])
+                    {
+                        foreach (int patternID in clusterPatterns[nodeName])
+                        {
+                            if (wave[i][patternID])
+                            {
+                                preFinishedObserved[i] = patternID;
+                                break;
+                            }
+                        }
+                    }
+                    preFinishedObserved[0] = -1;    //Erkennung für Generation
+                    preFinishedWave[i] = new Dictionary<int, bool>(wave[i]);
+                }
             }
 
             int node = NextUnobservedNode(random);
@@ -436,6 +484,7 @@ public abstract class NewModel
             if ((entry.Equals("grass") || entry.Equals("water")) && trueAmount > 1)
             {
                 remainingNormal++;
+                decided[i] = true;
             }
 
             /*
@@ -486,7 +535,16 @@ public abstract class NewModel
         }
         //Debug.Log(argmin);
 
-        //UnityEngine.Debug.Log($"Chose {argmin}");
+        if(argmin >= 0) 
+        {
+            int x = argmin % MX;
+            int y = argmin / MX; 
+            UnityEngine.Debug.Log($"Chose x:{x}, y: {y}");
+        }
+        else
+        {
+            UnityEngine.Debug.Log($"Chose {argmin}");
+        }
 
         if(argmin == -1 && backtracking)
         {
@@ -620,7 +678,7 @@ public abstract class NewModel
 
                 for (int l = 0; l < p.Length; l++)
                 {
-                    if (remainingNormal == 0 && neighbourNodeName != "root")
+                    if (remainingNormal == 0 && neighbourNodeName != "root" && banLowerClusterInRoot)
                     {
                         //TESTIMG: No banning of already set pieces
                         //UnityEngine.Debug.Log("oi");
@@ -635,20 +693,30 @@ public abstract class NewModel
                     if (comp[d] == 0) Ban(i2, t2);
                 }
             }
+
+            if (!isSolvable() && initPhase)
+            {
+                UnityEngine.Debug.Log("Not Solvable");
+            }
         }
 
-        //bool contradiction = false;
+        //ADDITION: Proper contradiction testing through all tiles.
+        bool contradiction = false;
 
         for(int i = 0; i < sumsOfOnes.Length; i++)
         {
             if (sumsOfOnes[i] <= 0)
             {
-                //contradiction = true;
+                contradiction = true;
+                int x = i % MX;
+                int y = i / MX;
+                UnityEngine.Debug.Log($"Contradiction at: x:{x}, y:{y}");
+                break;
             }
         }
 
-        return sumsOfOnes[0] > 0;
-        //return !contradiction;
+        //return sumsOfOnes[0] > 0;
+        return !contradiction;
     }
 
     void Ban(int i, int t)      //i = Position im Feld, t = PatternID
@@ -685,7 +753,7 @@ public abstract class NewModel
         sumsOfOnes[i] -= 1;
         sumsOfWeights[i] -= weights[nodeName][t];
 
-        if (sumsOfWeights[i] == 0)
+        if (sumsOfOnes[i] < 0)
         {
 
         }
@@ -703,6 +771,7 @@ public abstract class NewModel
         for (int i = 0; i < wave.Length; i++)
         {
             string nodeName = inputField[i];
+            decided[i] = false;
             /*
             for (int t = 0; t < T[nodeName]; t++)
             {
@@ -780,6 +849,9 @@ public abstract class NewModel
         observedSoFar = 0;
         backtrackTriesCounter = 0;
 
+        preFinishedObserved = null;
+        preFinishedWave = null;
+
         if (ground)
         {
             for (int x = 0; x < MX; x++)
@@ -810,8 +882,10 @@ public abstract class NewModel
         }
     }
 
-    void CreateBacktrackStep()
+    void CreateBacktrackStep(List<ModelState> ms = null)
     {
+        if (ms == null) ms = modelStates;
+
         ModelState modelState = new ModelState();
         modelState.wave = new Dictionary<int, bool>[wave.Length];
         for(int i = 0; i < wave.Length; i++)
@@ -830,7 +904,7 @@ public abstract class NewModel
                 modelState.compatible[i][j] = compatible[i][j].Select(a => a).ToArray();
             }
         }
-        //modelState.observed = observed.Clone() as int[];
+        modelState.observed = observed.Clone() as int[];
         modelState.sumOfWeights = new Dictionary<string, double>(sumOfWeights);
         modelState.sumOfWeightLogWeights = new Dictionary<string, double>(sumOfWeightLogWeights);
         modelState.sumsOfWeights = sumsOfWeights.Select(a => a).ToArray();
@@ -859,7 +933,7 @@ public abstract class NewModel
         modelState.lowestEntropyCount = amount;
         modelState.lowestEntropy = lowest;
 
-        modelStates.Add(modelState);
+        ms.Add(modelState);
     }
 
     void BacktrackRestore(int steps)
@@ -913,6 +987,7 @@ public abstract class NewModel
             }
         }
 
+        observed = restoreState.observed.Clone() as int[];
         sumOfWeights = new Dictionary<string, double>(restoreState.sumOfWeights);
         sumOfWeightLogWeights = new Dictionary<string, double>(restoreState.sumOfWeightLogWeights);
         sumsOfWeights = restoreState.sumsOfWeights.Select(a => a).ToArray();

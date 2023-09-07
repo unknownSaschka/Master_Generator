@@ -17,8 +17,9 @@ public class ClusterOverlapping : NewModel
     
 
 
-    public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking)
-        : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit, backtrackTries, backtracking)
+    public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, 
+        ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot)
+        : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit, backtrackTries, backtracking, clusterBanning, banLowerClusterInRoot)
     {
         //load all samples for each node
         //Dictionary<string, byte[]> samples = new();
@@ -362,8 +363,45 @@ public class ClusterOverlapping : NewModel
                 {
                     bitmap[i] = unchecked((int)0xff000000 | ((r / contributors) << 16) | ((g / contributors) << 8) | b / contributors);
                 }
-                
             }
+
+            
+            //------------------ADDDITION TESTING-----------------------
+            for (int y = 0; y < MY; y++)
+            {
+                //int dy = 0;
+                int dy = y < MY - N + 1 ? 0 : N - 1;
+                for (int x = 0; x < MX; x++)
+                {
+                    //int dx =  0;
+                    int dx = x < MX - N + 1 ? 0 : N - 1;
+
+                    if (!preDecided[x - dx + (y - dy) * MX]) continue;
+
+                    //string nodeName = inputField[x + y * MX];
+
+                    //var nodeColors = colors[nodeName];
+                    //var nodePatterns = patterns[nodeName];
+                    var currentObserved = observed[x - dx + (y - dy) * MX];
+                    var currentPosition = dx + dy * N;
+
+                    bitmap[x + y * MX] = 0;
+
+                    //TODO: Backtracking einführen, da wegen Contradiction teils keine Teile generiert werden können
+                    if (currentObserved < patterns.Count && currentObserved >= 0)
+                    {
+                        byte[] p = patterns[currentObserved];
+                        byte s = p[currentPosition];
+                        bitmap[x + y * MX] = colors[s];
+                    }
+                    else
+                    {
+                        bitmap[x + y * MX] = 0;
+                    }
+
+                }
+            }
+        
         }
 
         return bitmap;

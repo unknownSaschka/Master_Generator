@@ -27,6 +27,7 @@ public class WFC : MonoBehaviour
     public GameObject PrototypePlane;
     public GameObject SamplePlane;
     public GameObject ResultPlane;
+    public GameObject FinishedLowerClustersPlane;
 
     private Texture2D Result;
 
@@ -43,6 +44,8 @@ public class WFC : MonoBehaviour
     public Helper.CompatibleInit CompatibleInit;
     public int BacktrackTries;
     public bool Backtracking;
+    public bool ClusterBanning;
+    public bool BanLowerClusterInRoot;
 
     private OverlappingModel currentModel;
 
@@ -184,7 +187,8 @@ public class WFC : MonoBehaviour
             leafs.Add(node.Key, node.Value);
         }
 
-        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking);
+        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, 
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot);
     }
 
     public void GenerateClusteredOverlapping()
@@ -204,6 +208,13 @@ public class WFC : MonoBehaviour
         PrototypeParser p = new PrototypeParser();
         result = p.CutTexture(result, SampleSize);
         SetImageOnObject(ResultPlane, result);
+
+        clusterModel.observed = clusterModel.preFinishedObserved;
+        clusterModel.wave = clusterModel.preFinishedWave;
+        int[] preImage = clusterModel.GenerateBitmap();
+        Texture2D preResult = GetTextureFromInt(preImage);
+        preResult = p.CutTexture(preResult, SampleSize);
+        SetImageOnObject(FinishedLowerClustersPlane, preResult);
     }
 
     public async void ClusteredStepGenerate()
