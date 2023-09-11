@@ -32,6 +32,8 @@ public class ClusterOverlapping : NewModel
         nodeNames = new();
         T = new();
 
+        nodeDepth = new();
+
         Dictionary<Color32, string> inputFieldColors = new();
 
         List<KeyValuePair<string, Node>> toProcess = new();
@@ -43,6 +45,7 @@ public class ClusterOverlapping : NewModel
         foreach (var node in nodes)
         {
             nodeNames.Add(node.Key);
+            nodeDepth.Add(node.Key, node.Value.Depth);
             if (node.Value.PrototypePlaceable) inputFieldColors.Add(node.Value.NodeColor, node.Key);     //Alle verbindungspatterns sind nicht placeable, haben jedoch ein Sample
 
             //Sort the normal Nodes from Leafs and process parent nodes later when all patterns from the leafs are prepared
@@ -318,6 +321,7 @@ public class ClusterOverlapping : NewModel
             {
                 int contributors = 0, r = 0, g = 0, b = 0;
                 int x = i % MX, y = i / MX;
+                string nodeName = inputField[i];
                 for (int dy = 0; dy < N; dy++) for (int dx = 0; dx < N; dx++)
                     {
                         int sx = x - dx;
@@ -328,11 +332,13 @@ public class ClusterOverlapping : NewModel
 
                         int s = sx + sy * MX;
                         if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) continue;
-                        string nodeName = inputField[s];
+                        string neighbourNodeName = inputField[s];
                         foreach(var entry in wave[s])
                         {
                             if (entry.Value)
                             {
+                                if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
+
                                 contributors++;
                                 int argb = colors[patterns[entry.Key][dx + dy * N]];
                                 r += (argb & 0xff0000) >> 16;

@@ -6,6 +6,7 @@ using Newtonsoft.Json.Linq;
 using System.IO;
 using System;
 using System.Linq;
+using UnityEditor.Experimental.GraphView;
 
 public class JSONParser
 {
@@ -77,6 +78,8 @@ public class JSONParser
             nodes.Add(parentProp.Name, node);
         }
 
+        CalculateDepths(nodes, "root");
+
         return nodes;
     }
 
@@ -86,6 +89,39 @@ public class JSONParser
         Texture2D tex = new Texture2D(2, 2);
         tex.LoadImage(img);
         return tex;
+    }
+
+    private static void CalculateDepths(Dictionary<string, Node> nodes, string rootName)
+    {
+        Node rootNode = nodes[rootName];
+
+        foreach(var targetNode in nodes)
+        {
+            Depth(nodes, targetNode, new KeyValuePair<string, Node>(rootName, rootNode), rootName, 0);
+        }
+    }
+
+    private static bool Depth(Dictionary<string, Node> nodes, KeyValuePair<string, Node> targetNode, KeyValuePair<string, Node> currentNode, string rootName, int depth)
+    {
+        if (targetNode.Value.Equals(currentNode.Value))
+        {
+            currentNode.Value.Depth = depth;
+            return true;
+        }
+
+        var next = currentNode.Value.Children;
+        if (next == null) return false;
+
+        foreach(var child in next)
+        {
+            if(Depth(nodes, targetNode, new KeyValuePair<string, Node>(child, nodes[child]), rootName, depth + 1))
+            {
+                return true;
+            }
+        }
+
+        return false;
+
     }
 
 }

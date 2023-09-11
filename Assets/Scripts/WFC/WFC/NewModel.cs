@@ -9,6 +9,7 @@ using Unity.VisualScripting;
 using UnityEngine;
 using static Helper;
 using static UnityEditor.PlayerSettings;
+using static UnityEngine.EventSystems.EventTrigger;
 //using UnityEngine;
 
 public abstract class NewModel
@@ -20,6 +21,10 @@ public abstract class NewModel
     protected string[] inputField;
     protected Dictionary<string, List<int>> clusterPatterns;   //StartIndex, Element Count (used for pattern and weights)
     protected int globalPatternCount;
+
+    int remainingNormal = 0;
+    List<int> remaining;
+    protected Dictionary<string, int> nodeDepth;                //Initialized in ClusterOverlapping
 
     //Backtracking
     protected List<ModelState> modelStates;
@@ -77,10 +82,13 @@ public abstract class NewModel
     Heuristic heuristic;
     ExtendedHeuristic extendedHeuristic;
     CompatibleInit compatibleInit;
-    int remainingNormal = 0;
+
+    
+
     public int[] preFinishedObserved = null;
     public Dictionary<int, bool>[] preFinishedWave = null;
     protected bool[] preDecided = null;
+
     bool backtracking;
     bool clusterBanning;
     bool banLowerClusterInRoot;
@@ -118,6 +126,7 @@ public abstract class NewModel
         observed = new int[MX * MY];
         startingEntropy = new();
 
+        remaining = new();
         decided = new bool[MX * MY];
 
         for (int i = 0; i < wave.Length; i++)
@@ -184,12 +193,15 @@ public abstract class NewModel
 
         initPhase = true;
         Clear();
+        calculateRemaining();
         //CreateBacktrackStep(testDebug);
         if(clusterBanning) InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
         //CreateBacktrackStep(testDebug);
         CreateBacktrackStep();
         initPhase = false;
         System.Random random = rng;
+
+        //SaveCurrentProgress();
 
         bool solvable = isSolvable();
         if (!solvable)
@@ -215,28 +227,7 @@ public abstract class NewModel
 
             if(remainingNormal == 0 && preFinishedObserved == null)
             {
-                preFinishedObserved = new int[wave.Length];
-                preFinishedWave = new Dictionary<int, bool>[wave.Length];
-                preDecided = decided.Clone() as bool[];
-                for (int i = 0; i < wave.Length; i++)
-                {
-                    string nodeName = inputField[i];
-
-                    //if some tiles are already set, set the patternID for the tile for generating a snapshot picture of the current generation progress
-                    if (decided[i])
-                    {
-                        foreach (int patternID in clusterPatterns[nodeName])
-                        {
-                            if (wave[i][patternID])
-                            {
-                                preFinishedObserved[i] = patternID;
-                                break;
-                            }
-                        }
-                    }
-                    preFinishedObserved[0] = -1;    //Erkennung für Generation
-                    preFinishedWave[i] = new Dictionary<int, bool>(wave[i]);
-                }
+                SaveCurrentProgress();
             }
 
             int node = NextUnobservedNode(random);
@@ -678,12 +669,14 @@ public abstract class NewModel
 
                 for (int l = 0; l < p.Length; l++)
                 {
-                    if (remainingNormal == 0 && neighbourNodeName != "root" && banLowerClusterInRoot)
+                    
+                    if (remainingNormal == 0 && currentNodeName == "root" && neighbourNodeName != "root" && banLowerClusterInRoot)
                     {
                         //TESTIMG: No banning of already set pieces
                         //UnityEngine.Debug.Log("oi");
                         continue;
                     }
+                    
 
                     int t2 = p[l];
                     int[] comp = compat[t2];
@@ -851,6 +844,18 @@ public abstract class NewModel
 
         preFinishedObserved = null;
         preFinishedWave = null;
+
+        int maxValue = 0;
+        foreach(var depth in nodeDepth)
+        {
+            if(depth.Value > maxValue) maxValue = depth.Value;
+        }
+
+        remaining.Clear();
+        for(int i = 0; i <= maxValue; i++)
+        {
+            remaining.Add(0);
+        }
 
         if (ground)
         {
@@ -1028,6 +1033,60 @@ public abstract class NewModel
         }
 
         return true;
+    }
+
+    private void SaveCurrentProgress()
+    {
+        preFinishedObserved = new int[wave.Length];
+        preFinishedWave = new Dictionary<int, bool>[wave.Length];
+        preDecided = decided.Clone() as bool[];
+        for (int i = 0; i < wave.Length; i++)
+        {
+            string nodeName = inputField[i];
+
+            //if some tiles are already set, set the patternID for the tile for generating a snapshot picture of the current generation progress
+            if (decided[i])
+            {
+                foreach (int patternID in clusterPatterns[nodeName])
+                {
+                    if (wave[i][patternID])
+                    {
+                        preFinishedObserved[i] = patternID;
+                        break;
+                    }
+                }
+            }
+            preFinishedObserved[0] = -1;    //Erkennung für Generation
+            preFinishedWave[i] = new Dictionary<int, bool>(wave[i]);
+        }
+    }
+
+    private void calculateRemaining()
+    {
+        for(int i = 0; i < remaining.Count; i++)
+        {
+            remaining[i] = 0;
+        }
+
+        for(int i = 0; i < wave.Length; i++)
+        {
+            string nodeName = inputField[i];
+            int trueAmount = 0;
+
+            foreach (var l in wave[i])
+            {
+                if (!(i % MX + N > MX || i / MX + N > MY))
+                    if (l.Value) trueAmount++;
+            }
+
+            if (trueAmount > 1)
+            {
+                int nDepth = nodeDepth[nodeName];
+                UnityEngine.Debug.Log(nDepth);
+                remaining[nDepth]++;
+                decided[i] = true;
+            }
+        }
     }
 
     public abstract void Save(string filename);

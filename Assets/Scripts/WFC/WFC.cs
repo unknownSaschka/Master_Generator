@@ -89,7 +89,7 @@ public class WFC : MonoBehaviour
             if (success) break;
         }
         int[] image = model.GenerateBitmap();
-        SetImageOnObject(ResultPlane, GetTextureFromInt(image));
+        SetImageOnObject(ResultPlane, GetTextureFromInt(image, true));
     }
 
     public void SteppedGenerate()
@@ -127,7 +127,7 @@ public class WFC : MonoBehaviour
                 if (finished == 0)       //Fertig
                 {
                     int[] current = currentModel.GenerateBitmap();
-                    SetImageOnObject(ResultPlane, GetTextureFromInt(current));
+                    SetImageOnObject(ResultPlane, GetTextureFromInt(current, true));
                     //yield return new WaitForSecondsRealtime(SecondsWait);
                     return;
                 }
@@ -138,7 +138,7 @@ public class WFC : MonoBehaviour
                     {
                         index = 0;
                         int[] current = currentModel.GenerateBitmap();
-                        SetImageOnObject(ResultPlane, GetTextureFromInt(current));
+                        SetImageOnObject(ResultPlane, GetTextureFromInt(current, true));
                         //yield return new WaitForSeconds(SecondsWait);
                         await Task.Delay(MilliSecondsWait);
                     }
@@ -152,7 +152,7 @@ public class WFC : MonoBehaviour
             if (!contradiction)
             {
                 int[] result = currentModel.GenerateBitmap();
-                SetImageOnObject(ResultPlane, GetTextureFromInt(result));
+                SetImageOnObject(ResultPlane, GetTextureFromInt(result, true));
                 return;
             }
             else
@@ -204,7 +204,7 @@ public class WFC : MonoBehaviour
         clusterModel.Run(random, Limit);
 
         int[] image = clusterModel.GenerateBitmap();
-        Texture2D result = GetTextureFromInt(image);
+        Texture2D result = GetTextureFromInt(image, true);
         PrototypeParser p = new PrototypeParser();
         result = p.CutTexture(result, SampleSize);
         SetImageOnObject(ResultPlane, result);
@@ -212,7 +212,7 @@ public class WFC : MonoBehaviour
         clusterModel.observed = clusterModel.preFinishedObserved;
         clusterModel.wave = clusterModel.preFinishedWave;
         int[] preImage = clusterModel.GenerateBitmap();
-        Texture2D preResult = GetTextureFromInt(preImage);
+        Texture2D preResult = GetTextureFromInt(preImage, true);
         preResult = p.CutTexture(preResult, SampleSize);
         SetImageOnObject(FinishedLowerClustersPlane, preResult);
     }
@@ -224,7 +224,7 @@ public class WFC : MonoBehaviour
         foreach (var finish in clusterModel.StepRun(random, Limit))
         {
             int[] image = clusterModel.GenerateBitmap();
-            Texture2D result = GetTextureFromInt(image);
+            Texture2D result = GetTextureFromInt(image, true);
             PrototypeParser p = new PrototypeParser();
             result = p.CutTexture(result, SampleSize);
             SetImageOnObject(ResultPlane, result);
@@ -248,7 +248,7 @@ public class WFC : MonoBehaviour
         sampleRenderer.sharedMaterial.SetTexture("_MainTex", texture);
     }
 
-    private Texture2D GetTextureFromInt(int[] bitmap)
+    private Texture2D GetTextureFromInt(int[] bitmap, bool flip)
     {
         Color32[] colors = new Color32[bitmap.Length];
         for (int i = 0; i < bitmap.Length; i++)
@@ -258,7 +258,15 @@ public class WFC : MonoBehaviour
         }
 
         Texture2D resultTexture = new Texture2D(Width, Height, TextureFormat.RGBA32, false);
-        resultTexture.SetPixels32(colors.FlipVertically(Width, Height));
+        if (flip)
+        {
+            resultTexture.SetPixels32(colors.FlipVertically(Width, Height));
+        }
+        else
+        {
+            resultTexture.SetPixels32(colors);
+        }
+        
         resultTexture.filterMode = FilterMode.Point;
         resultTexture.Apply();
         Result = resultTexture;
