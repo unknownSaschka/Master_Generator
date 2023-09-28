@@ -33,6 +33,7 @@ public class ClusterOverlapping : NewModel
         T = new();
 
         nodeDepth = new();
+        hasNodeSample = new();
 
         Dictionary<Color32, string> inputFieldColors = new();
 
@@ -46,6 +47,9 @@ public class ClusterOverlapping : NewModel
         {
             nodeNames.Add(node.Key);
             nodeDepth.Add(node.Key, node.Value.Depth);
+
+            hasNodeSample.Add(node.Key, node.Value.Sample != null);         //When node has no sample, its a combined node from other nodes
+
             if (node.Value.PrototypePlaceable) inputFieldColors.Add(node.Value.NodeColor, node.Key);     //Alle verbindungspatterns sind nicht placeable, haben jedoch ein Sample
 
             //Sort the normal Nodes from Leafs and process parent nodes later when all patterns from the leafs are prepared
@@ -221,6 +225,15 @@ public class ClusterOverlapping : NewModel
 
         inputField = inputFieldList.ToArray();
         globalPatternCount = patterns.Count;
+
+
+        //Print Pattern Counts
+        string output = "Generated Pattern amount: \r\n";
+        foreach(var t in T)
+        {
+            output += $"{t.Key}: {t.Value}\r\n";
+        }
+        UnityEngine.Debug.Log(output);
     }
 
 
@@ -371,40 +384,42 @@ public class ClusterOverlapping : NewModel
                 }
             }
 
-            
-            //------------------ADDDITION TESTING-----------------------
-            for (int y = 0; y < MY; y++)
+            if (preDecided != null)
             {
-                //int dy = 0;
-                int dy = y < MY - N + 1 ? 0 : N - 1;
-                for (int x = 0; x < MX; x++)
+                //------------------ADDDITION TESTING-----------------------
+                for (int y = 0; y < MY; y++)
                 {
-                    //int dx =  0;
-                    int dx = x < MX - N + 1 ? 0 : N - 1;
-
-                    if (!preDecided[x - dx + (y - dy) * MX]) continue;
-
-                    //string nodeName = inputField[x + y * MX];
-
-                    //var nodeColors = colors[nodeName];
-                    //var nodePatterns = patterns[nodeName];
-                    var currentObserved = observed[x - dx + (y - dy) * MX];
-                    var currentPosition = dx + dy * N;
-
-                    bitmap[x + y * MX] = 0;
-
-                    //TODO: Backtracking einführen, da wegen Contradiction teils keine Teile generiert werden können
-                    if (currentObserved < patterns.Count && currentObserved >= 0)
+                    //int dy = 0;
+                    int dy = y < MY - N + 1 ? 0 : N - 1;
+                    for (int x = 0; x < MX; x++)
                     {
-                        byte[] p = patterns[currentObserved];
-                        byte s = p[currentPosition];
-                        bitmap[x + y * MX] = colors[s];
-                    }
-                    else
-                    {
+                        //int dx =  0;
+                        int dx = x < MX - N + 1 ? 0 : N - 1;
+
+                        if (!preDecided[x - dx + (y - dy) * MX]) continue;
+
+                        //string nodeName = inputField[x + y * MX];
+
+                        //var nodeColors = colors[nodeName];
+                        //var nodePatterns = patterns[nodeName];
+                        var currentObserved = observed[x - dx + (y - dy) * MX];
+                        var currentPosition = dx + dy * N;
+
                         bitmap[x + y * MX] = 0;
-                    }
 
+                        //TODO: Backtracking einführen, da wegen Contradiction teils keine Teile generiert werden können
+                        if (currentObserved < patterns.Count && currentObserved >= 0)
+                        {
+                            byte[] p = patterns[currentObserved];
+                            byte s = p[currentPosition];
+                            bitmap[x + y * MX] = colors[s];
+                        }
+                        else
+                        {
+                            bitmap[x + y * MX] = 0;
+                        }
+
+                    }
                 }
             }
         

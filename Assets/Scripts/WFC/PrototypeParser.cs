@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class PrototypeParser 
@@ -28,10 +29,10 @@ public class PrototypeParser
         {
             for(int x = 0; x < prototype.width; x++)
             {
-                Check(x, y, x + 1, y, prototype, colors);
-                Check(x, y, x - 1, y, prototype, colors);
-                Check(x, y, x, y + 1, prototype, colors);
-                Check(x, y, x, y - 1, prototype, colors);
+                Check(x, y, x + 1, y, prototype, colors, graph);
+                Check(x, y, x - 1, y, prototype, colors, graph);
+                Check(x, y, x, y + 1, prototype, colors, graph);
+                Check(x, y, x, y - 1, prototype, colors, graph);
             }
         }
 
@@ -45,7 +46,7 @@ public class PrototypeParser
         return newPrototype;
     }
 
-    private bool Check(int x, int y, int x1, int y1, Texture2D prototype, Color32[] colors)
+    private bool Check(int x, int y, int x1, int y1, Texture2D prototype, Color32[] colors, Graph graph)
     {
         if (x < 0 || x >= prototype.width) return false;
         if (x1 < 0 || x1 >= prototype.width) return false;
@@ -55,7 +56,12 @@ public class PrototypeParser
         string pixel1 = colorMapping[colors[x + y * prototype.width]];
         string pixel2 = colorMapping[colors[x1 + y1 * prototype.width]];
 
-        if(pixel1.Equals(rootName) || pixel2.Equals(rootName)) return false;
+        //if(pixel1.Equals(rootName) || pixel2.Equals(rootName)) return false;
+        var n = from s in graph.Nodes where (s.Value.Sample == null) select s.Key;
+        if(n.Contains(pixel1) || n.Contains(pixel2))
+        {
+            return false;
+        }
 
         if (pixel1.Equals(pixel2)) return false;
 

@@ -46,6 +46,7 @@ public class JSONParser
             }
 
             //load adjacenties
+            /*
             var adjacentiesList = content.Value<JObject>("adjacenties");
 
             if (adjacentiesList != null)
@@ -57,6 +58,7 @@ public class JSONParser
                 adjacenties.Right = adjacentiesList.Value<JArray>("R").ToObject<List<string>>();
                 node.Adjacenties = adjacenties;
             }
+            */
 
             //load color
             int[] colorVal = content.Value<JArray>("color")?.ToObject<int[]>();

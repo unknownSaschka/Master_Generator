@@ -22,9 +22,10 @@ public abstract class NewModel
     protected Dictionary<string, List<int>> clusterPatterns;   //StartIndex, Element Count (used for pattern and weights)
     protected int globalPatternCount;
 
-    int remainingNormal = 0;
+    //int remainingNormal = 0;
     List<int> remaining;
     protected Dictionary<string, int> nodeDepth;                //Initialized in ClusterOverlapping
+    protected Dictionary<string, bool> hasNodeSample;           //tracks if Node was Combined or generated from a sample. Ture is leaf node, false is combined node
 
     //Backtracking
     protected List<ModelState> modelStates;
@@ -83,7 +84,7 @@ public abstract class NewModel
     ExtendedHeuristic extendedHeuristic;
     CompatibleInit compatibleInit;
 
-    
+    //-------MORE ADDITIONS-------
 
     public int[] preFinishedObserved = null;
     public Dictionary<int, bool>[] preFinishedWave = null;
@@ -210,7 +211,7 @@ public abstract class NewModel
             return false;
         }
 
-        remainingNormal = -1;
+        //remainingNormal = -1;
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -225,7 +226,7 @@ public abstract class NewModel
                 return false;
             }
 
-            if(remainingNormal == 0 && preFinishedObserved == null)
+            if (remaining.Last() == 0 && preFinishedObserved == null)
             {
                 SaveCurrentProgress();
             }
@@ -454,9 +455,19 @@ public abstract class NewModel
         double min = 1E+4;
         int argmin = -1;
 
-        remainingNormal = 0;
+        calculateRemaining();
+        int remainingDepth = getNextUndecidedNodeDepth();
 
-        for(int i = 0; i < inputField.Length; i++)
+        if (remainingDepth == -1)
+        {
+            return -1;
+        }
+
+
+        /*
+         * //remainingNormal = 0;
+         * 
+        for (int i = 0; i < inputField.Length; i++)
         {
             string entry = inputField[i];
             //bool available = false;
@@ -470,28 +481,25 @@ public abstract class NewModel
                 if (!(i % MX + N > MX || i / MX + N > MY))
                     if (l.Value) trueAmount++;
             }
-
             //TESTING
+            
             if ((entry.Equals("grass") || entry.Equals("water")) && trueAmount > 1)
             {
                 remainingNormal++;
                 decided[i] = true;
             }
+            
 
-            /*
+            
             if(trueAmount == 0)
             {
                 return -2;      //If an undecidable piece exist, return -2
             }
-            */
+            
         }
+        //UnityEngine.Debug.Log($"RemainingNormal:{remainingNormal}");
+        */
 
-        UnityEngine.Debug.Log($"RemainingNormal:{remainingNormal}");
-
-        if(remainingNormal == 0)
-        {
-
-        }
 
         //Geht durch das gesamte Feld und berechnet die Entropie. Dazu wird noise auf die Entropy addiert. Das Feld mit ner niedrigsten Entropy wird zurückgegeben
         for (int i = 0; i < wave.Length; i++)
@@ -502,7 +510,10 @@ public abstract class NewModel
 
             if (extendedHeuristic == ExtendedHeuristic.LowestNodesFirst)
             {
-                if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+                //if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+                //if (remainingNormal > 1 && inputField[i].Equals("root")) continue;      //TESTING: if grass pieces arent solved, dont select root pieces
+                int nDepth = nodeDepth[inputField[i]];
+                if(nDepth < remainingDepth) { continue; }
             }
             
 
@@ -530,7 +541,7 @@ public abstract class NewModel
         {
             int x = argmin % MX;
             int y = argmin / MX; 
-            UnityEngine.Debug.Log($"Chose x:{x}, y: {y}");
+            //UnityEngine.Debug.Log($"Chose x:{x}, y: {y}");
         }
         else
         {
@@ -664,18 +675,24 @@ public abstract class NewModel
                  * Compatible sollte schonmal mit der richtigen Anzahl des benachbarten Tiles initialisiert werden, auch wenn dies von einem anderen Cluster ist.
                  */
 
+                int currentNodeDepth = nodeDepth[currentNodeName];
+                int neighbourNodeDepth = nodeDepth[neighbourNodeName];
+
                 //int[][] compat = compatible[i2];    
                 int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
                 {
-                    
+                    /*
                     if (remainingNormal == 0 && currentNodeName == "root" && neighbourNodeName != "root" && banLowerClusterInRoot)
                     {
                         //TESTIMG: No banning of already set pieces
                         //UnityEngine.Debug.Log("oi");
                         continue;
                     }
+                    */
+
+                    if (banLowerClusterInRoot && currentNodeDepth < neighbourNodeDepth) continue;
                     
 
                     int t2 = p[l];
@@ -1082,11 +1099,29 @@ public abstract class NewModel
             if (trueAmount > 1)
             {
                 int nDepth = nodeDepth[nodeName];
-                UnityEngine.Debug.Log(nDepth);
+                //UnityEngine.Debug.Log(nDepth);
                 remaining[nDepth]++;
+                //decided[i] = true;
+            }
+            else if (trueAmount == 1)
+            {
                 decided[i] = true;
             }
+            else
+            {
+                decided[i] = false;
+            }
         }
+    }
+
+    private int getNextUndecidedNodeDepth()
+    {
+        for (int i = remaining.Count - 1; i >= 0; i--)
+        {
+            if (remaining[i] != 0) return i;
+        }
+
+        return -1;
     }
 
     public abstract void Save(string filename);
