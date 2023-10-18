@@ -291,6 +291,13 @@ public class ClusterOverlapping : NewModel
     public int[] GenerateBitmap()
     {
         int[] bitmap = new int[MX * MY];
+
+        if(observed == null)
+        {
+            Debug.Log("Not finished yet.");
+            return null;
+        }
+
         if (observed[0] >= 0)
         {
             Debug.Log("Generate Bitmap for Finished");

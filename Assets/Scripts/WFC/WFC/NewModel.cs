@@ -98,6 +98,8 @@ public abstract class NewModel
 
     private bool initPhase = false;
 
+    private System.Random _random;
+
     protected NewModel(int width, int height, int N, bool periodic, Heuristic heuristic, ExtendedHeuristic extendedHeuristic, CompatibleInit compInit,
         int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot)
     {
@@ -303,6 +305,97 @@ public abstract class NewModel
         return true;
     }
 
+    public void InitStepRun(System.Random rng)
+    {
+        Init();
+
+        initPhase = true;
+        Clear();
+        calculateRemaining();
+        //CreateBacktrackStep(testDebug);
+        if (clusterBanning) InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
+        //CreateBacktrackStep(testDebug);
+        CreateBacktrackStep();
+        initPhase = false;
+        _random = rng;
+
+        //SaveCurrentProgress();
+
+        bool solvable = isSolvable();
+        if (!solvable)
+        {
+            UnityEngine.Debug.Log("Unsolvable");
+            return;
+        }
+    }
+
+    public bool StepRun()
+    {
+        int node = NextUnobservedNode(_random);
+
+
+        //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
+        if (node >= 0)
+        {
+            //if (inputField[node].Equals("root")) Debugger.Break();
+            Observe(node, _random);
+            bool success = Propagate();
+            //UnityEngine.Debug.Log($"Success: {success}");
+            if (!success)
+            {
+                //return false;
+                backtrackTriesCounter++;
+                UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+                if (backtrackTries < backtrackTriesCounter) return false;
+
+                //first try to go back one step
+                //BacktrackRestore(-1);
+
+                if (backtracking)
+                {
+                    backtrackTriesCounter++;
+                    CreateBacktrackStep();
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        return false;
+
+        /*
+        else if (node == -2)
+        {
+            backtrackTriesCounter++;
+            BacktrackRestore(-1);
+            UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+        }
+
+        //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
+        else
+        {
+            for (int i = 0; i < wave.Length; i++)
+            {
+                string nodeName = inputField[i];
+
+                foreach (int patternID in clusterPatterns[nodeName])
+                {
+                    if (wave[i][patternID])
+                    {
+                        observed[i] = patternID;
+                        break;
+                    }
+                }
+            }
+            return true;
+        }
+        */
+    }
+
     public void InitBan()
     {
         for(int i = 0; i < wave.Length; i++)
@@ -358,75 +451,6 @@ public abstract class NewModel
         }
 
         Propagate();
-    }
-
-    public void InitStepRun()
-    {
-        if (wave == null) Init();
-
-        Clear();
-        InitBan();      //Bans all Patterns which arent possible with neighbouring patterns of other cluster
-        CreateBacktrackStep();
-        //System.Random random = new(seed);
-    }
-
-    public IEnumerable<bool> StepRun(System.Random random, int limit)
-    {
-        //if (wave == null) Init();
-
-        //Clear();
-        //System.Random random = new(seed);
-
-        //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
-        for (int l = 0; l < limit || limit < 0; l++)
-        {
-            int node = NextUnobservedNode(random);
-
-            //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
-            if (node >= 0)
-            {
-                Observe(node, random);
-
-                
-
-                bool success = Propagate();
-                if (!success)
-                {
-                    UnityEngine.Debug.Log("False");
-                    yield return false;
-                }
-            }
-            //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
-            else
-            {
-                for (int i = 0; i < wave.Length; i++)
-                {
-                    string nodeName = inputField[i];
-                    /*
-                    for (int t = 0; t < T[nodeName]; t++)
-                    {
-                        if (wave[i][t]) 
-                        { 
-                            observed[i] = t;    //Alle übrig resultierenden Tiles in wave werden in observed übertragen
-                            break; 
-                        }
-                    }
-                    */
-
-                    foreach (int patternID in clusterPatterns[nodeName])
-                    {
-                        if (wave[i][patternID])
-                        {
-                            observed[i] = patternID;
-                            break;
-                        }
-                    }
-                }
-                yield return true;
-            }
-        }
-
-        yield return true;
     }
 
     /// <summary>
@@ -567,6 +591,9 @@ public abstract class NewModel
         Dictionary<int, bool> w = wave[node];
         string nodeName = inputField[node];
 
+        int x1 = node % MX;
+        int y1 = node / MX;
+        UnityEngine.Debug.Log($"Next Pos at {x1},{y1}");
 
         /*
         for (int t = 0; t < ; t++)
@@ -576,7 +603,7 @@ public abstract class NewModel
         }
         */
 
-        foreach(var weight in weights[nodeName])
+        foreach (var weight in weights[nodeName])
         {
             if (!distribution[nodeName].ContainsKey(weight.Key)) 
             {
@@ -731,6 +758,10 @@ public abstract class NewModel
 
     void Ban(int i, int t)      //i = Position im Feld, t = PatternID
     {
+        int x1 = i % MX;
+        int y1 = i / MX;
+        //UnityEngine.Debug.Log($"Ban at {x1},{y1}");
+
         wave[i][t] = false;
 
         int contributors = 0;
@@ -745,7 +776,7 @@ public abstract class NewModel
 
         if(contributors == 0)
         {
-            //UnityEngine.Debug.Log("ALARME");
+            //UnityEngine.Debug.Log("Contradiction in Banning");
         }
 
         //--------------------------

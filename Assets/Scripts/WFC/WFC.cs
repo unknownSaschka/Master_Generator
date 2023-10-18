@@ -217,21 +217,47 @@ public class WFC : MonoBehaviour
         SetImageOnObject(FinishedLowerClustersPlane, preResult);
     }
 
-    public async void ClusteredStepGenerate()
+    public void InitClusteredStepGeneration()
     {
-        clusterModel.InitStepRun();
+        Dictionary<string, Node> leafs = new();
 
-        foreach (var finish in clusterModel.StepRun(random, Limit))
+        foreach (var node in Nodes)
         {
-            int[] image = clusterModel.GenerateBitmap();
-            Texture2D result = GetTextureFromInt(image, true);
-            PrototypeParser p = new PrototypeParser();
-            result = p.CutTexture(result, SampleSize);
-            SetImageOnObject(ResultPlane, result);
-            await Task.Delay(MilliSecondsWait);
-
-            if (finish) break;
+            //if(node.Value.Sample == null) continue;
+            leafs.Add(node.Key, node.Value);
         }
+
+        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height,
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot);
+
+        clusterModel.InitStepRun(random);
+    }
+
+    public void ClusteredStepGenerate()
+    {
+        clusterModel.StepRun();
+
+        int[] image = clusterModel.GenerateBitmap();
+        Texture2D result = GetTextureFromInt(image, true);
+        PrototypeParser p = new PrototypeParser();
+        result = p.CutTexture(result, SampleSize);
+        SetImageOnObject(ResultPlane, result);
+
+        /*
+        clusterModel.observed = clusterModel.preFinishedObserved;
+        Dictionary<int, bool>[] wave = clusterModel.wave;
+        clusterModel.wave = clusterModel.preFinishedWave;
+        int[] preImage = clusterModel.GenerateBitmap();
+        if (preImage == null)
+        {
+            clusterModel.wave = wave;
+            return;
+        }
+        Texture2D preResult = GetTextureFromInt(preImage, true);
+        preResult = p.CutTexture(preResult, SampleSize);
+        SetImageOnObject(FinishedLowerClustersPlane, preResult);
+        clusterModel.wave = wave;
+        */
     }
 
     public void SetImageOnObject(GameObject gameObject, BMPImage texture)

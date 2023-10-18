@@ -77,6 +77,8 @@ public class WFCDrawer : Editor
             wfc.ProcessPrototype();
         }
 
+        GUILayout.Label("Normal Generation");
+
         if (GUILayout.Button("Prepare Clustered"))
         {
             wfc.PrepareClusteredOverlapping();
@@ -85,6 +87,13 @@ public class WFCDrawer : Editor
         if(GUILayout.Button("Generate Clustered"))
         {
             wfc.GenerateClusteredOverlapping();
+        }
+
+        GUILayout.Label("Step by Step Generation");
+
+        if (GUILayout.Button("Init Step Generation"))
+        {
+            wfc.InitClusteredStepGeneration();
         }
 
         if (GUILayout.Button("Step Generate Clustered"))
