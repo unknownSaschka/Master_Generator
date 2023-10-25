@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using UnityEditor.Experimental.GraphView;
 using UnityEngine;
 using static Helper;
@@ -39,9 +40,37 @@ public class ClusterOverlapping : NewModel
 
         List<KeyValuePair<string, Node>> toProcess = new();
 
+        Dictionary<string, byte[]> nodeSamples = new();
+
+        //TESTING
+        Dictionary<long, int> patternIndices = new();
+
         //List<double> weightList = new();
 
-        int patternIndex = 0;
+        //int patternIndex = 0;
+
+        foreach(var node in nodes)
+        {
+            if (node.Value.Sample == null) continue;         //When node has no sample, its a combined node from other nodes
+
+            int[] nodeBitmap = node.Value.Sample.GetBitmap();
+            byte[] nodeSample = new byte[nodeBitmap.Length];
+
+            for (int i = 0; i < nodeSample.Length; i++)
+            {
+                int color = nodeBitmap[i];
+                int k = 0;
+                for (; k < colors.Count; k++)
+                {
+                    if (colors[k] == color) break;
+                }
+
+                if (k == colors.Count) colors.Add(color);
+                nodeSample[i] = (byte)k;
+            }
+
+            nodeSamples.Add(node.Key, nodeSample);
+        }
 
         foreach (var node in nodes)
         {
@@ -62,7 +91,7 @@ public class ClusterOverlapping : NewModel
             bool periodicInput = node.Value.Periodic;
             int symmetry = node.Value.Symmetry;
             
-            int[] nodeBitmap = node.Value.Sample.GetBitmap();
+            //int[] nodeBitmap = node.Value.Sample.GetBitmap();
             int sx = node.Value.Sample.width;
             int sy = node.Value.Sample.height;
 
@@ -70,31 +99,18 @@ public class ClusterOverlapping : NewModel
 
 
             //get all colors from all samples and prepare indexed sample array for each node
-            byte[] nodeSample = new byte[nodeBitmap.Length];
-
-            for(int i = 0; i < nodeSample.Length; i++)
-            {
-                int color = nodeBitmap[i];
-                int k = 0;
-                for(; k < colors.Count; k++)
-                {
-                    if (colors[k] == color) break;
-                }
-
-                if (k == colors.Count) colors.Add(color);
-                nodeSample[i] = (byte)k;
-            }
+            byte[] nodeSample = nodeSamples[node.Key];
 
             //samples.Add(node.Key, nodeSample);
             //colors.Add(node.Key, nodeColors);
 
             Dictionary<int, byte[]> nodePatterns = new();
-            Dictionary<long, int> patternIndices = new();
+            //Dictionary<long, int> patternIndices = new();
             Dictionary<int, double> nodeWeightDic = new();
             //List<int> patternIndexList = new();
 
-            //int C = colors.Count;       //wichtig für hashing algorithmus. Sollte keine große Auswirkung haben wenn ungenutzte Farben auch dabei sind
-            int C = 10;
+            int C = colors.Count;       //wichtig für hashing algorithmus. Sollte keine große Auswirkung haben wenn ungenutzte Farben auch dabei sind
+            //int C = 10;
             int xmax = periodicInput ? sx : sx - N + 1;
             int ymax = periodicInput ? sy : sy - N + 1;
 
@@ -121,16 +137,24 @@ public class ClusterOverlapping : NewModel
                         long h = hash(p, C);
                         if (patternIndices.TryGetValue(h, out int index))
                         {
-                            //Debug.Log($"Index: {index}, DicCount: {nodeWeightDic.Count}, NodeName: {node.Key}, PatternIndex: {patternIndex}");
-                            nodeWeightDic[index] = nodeWeightDic[index] + 1;    //Umso öfter ein Pattern vorkam, desto höher steigt die gewichtung (weight) von diesem
+                            if (nodePatterns.ContainsKey(index))
+                            {
+                                nodeWeightDic[index] = nodeWeightDic[index] + 1;    //Umso öfter ein Pattern vorkam, desto höher steigt die gewichtung (weight) von diesem
+                            }
+                            else
+                            {
+                                nodeWeightDic.Add(index, 1.0);
+                                nodePatterns.Add(index, p);
+                            }
                         }
                         else
                         {
-                            patternIndices.Add(h, patternIndex);
-                            nodeWeightDic.Add(patternIndex, 1.0);
-                            nodePatterns.Add(patternIndex, p);
+                            index = patternIndices.Count;
+                            patternIndices.Add(h, index);
+                            nodeWeightDic.Add(index, 1.0);
+                            nodePatterns.Add(index, p);
                             //patternIndexList.Add(patternIndex);
-                            patternIndex++;
+                            //patternIndex++;
                         }
                     }
                 }
@@ -149,8 +173,9 @@ public class ClusterOverlapping : NewModel
             List<int> indices = new();
             foreach (var pattern in nodePatterns)
             {
-                patterns.Add(pattern.Key, pattern.Value);
                 indices.Add(pattern.Key);
+                if (patterns.ContainsKey(pattern.Key)) continue;
+                patterns.Add(pattern.Key, pattern.Value);
             }
 
             clusterPatterns.Add(node.Key, indices);
@@ -234,6 +259,7 @@ public class ClusterOverlapping : NewModel
             output += $"{t.Key}: {t.Value}\r\n";
         }
         UnityEngine.Debug.Log(output);
+        SavePatterns();
     }
 
 
@@ -475,7 +501,14 @@ public class ClusterOverlapping : NewModel
 
         foreach(string nodeName in nodeNames)
         {
-            patternList.AddRange(clusterPatterns[nodeName]);
+            //patternList.AddRange(clusterPatterns[nodeName]);
+            foreach(int patternID in clusterPatterns[nodeName])
+            {
+                if (!patternList.Contains(patternID))
+                {
+                    patternList.Add(patternID);
+                }
+            }
             
             foreach(var entry in weights[nodeName])
             {
@@ -563,5 +596,59 @@ public class ClusterOverlapping : NewModel
         }
         propagator.Add(nodeName, nodePropagator);
         */
+    }
+
+    public void SavePatterns()
+    {
+        //Dictionary<int, int[]> translatedPatterns = new();
+
+        foreach (var pat in patterns)
+        {
+            int patternID = pat.Key;
+            int[] patternWithColorInt = new int[N*N];
+
+            byte[] p = patterns[patternID];
+
+            for (int i = 0; i < N*N; i++)
+            {
+                byte s = p[i];
+                patternWithColorInt[i] = colors[s];
+            }
+
+            
+            string ImageOutputFolder = "E:\\Studium\\Masterarbeit\\WFC Testing\\simple\\Graph\\patterns\\";
+            if (!File.Exists($"{ImageOutputFolder}{patternID}.png"))
+            {
+                Texture2D result = GetTextureFromInt(patternWithColorInt, true);
+                var texturePNG = result.EncodeToPNG();
+                File.WriteAllBytes($"{ImageOutputFolder}{patternID}.png", texturePNG);
+            }
+        }
+    }
+
+    //copied frpm WFC.cs
+    private Texture2D GetTextureFromInt(int[] bitmap, bool flip)
+    {
+        Color32[] colors = new Color32[bitmap.Length];
+        for (int i = 0; i < bitmap.Length; i++)
+        {
+            byte[] cols = BitConverter.GetBytes(bitmap[i]);
+            colors[i] = new Color32(cols[2], cols[1], cols[0], cols[3]);        //WFC saves in BGRA
+        }
+
+        Texture2D resultTexture = new Texture2D(N, N, TextureFormat.RGBA32, false);
+        if (flip)
+        {
+            resultTexture.SetPixels32(colors.FlipVertically(N, N));
+        }
+        else
+        {
+            resultTexture.SetPixels32(colors);
+        }
+
+        resultTexture.filterMode = FilterMode.Point;
+        resultTexture.Apply();
+
+        return resultTexture;
     }
 }

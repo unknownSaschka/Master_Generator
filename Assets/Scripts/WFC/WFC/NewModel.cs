@@ -332,7 +332,7 @@ public abstract class NewModel
     public bool StepRun()
     {
         int node = NextUnobservedNode(_random);
-
+        UnityEngine.Debug.Log(node);
 
         //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
         if (node >= 0)
