@@ -54,6 +54,8 @@ public class WFC : MonoBehaviour
     public int MilliSecondsWait = 10;
     public int Retries = 20;
 
+    public int seed = 1337;
+
     // Start is called before the first frame update
     void Start()
     {
@@ -181,6 +183,8 @@ public class WFC : MonoBehaviour
     {
         Dictionary<string, Node> leafs = new();
 
+        random = new System.Random(seed);
+
         foreach(var node in Nodes)
         {
             //if(node.Value.Sample == null) continue;
@@ -220,6 +224,7 @@ public class WFC : MonoBehaviour
     public void InitClusteredStepGeneration()
     {
         Dictionary<string, Node> leafs = new();
+        random = new System.Random(seed);
 
         foreach (var node in Nodes)
         {

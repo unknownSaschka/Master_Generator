@@ -684,10 +684,6 @@ public abstract class NewModel
                 int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
                 //int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
 
-                if (neighbourNodeName.Equals("root"))
-                {
-                    //UnityEngine.Debug.Log("root");
-                }
 
                 //TESTING: if p == 0 skip, because pattern isn't available
                 if (p == null)
