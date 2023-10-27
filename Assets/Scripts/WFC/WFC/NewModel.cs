@@ -204,6 +204,8 @@ public abstract class NewModel
         initPhase = false;
         System.Random random = rng;
 
+        PreBanning();
+
         //SaveCurrentProgress();
 
         bool solvable = isSolvable();
@@ -320,6 +322,7 @@ public abstract class NewModel
         _random = rng;
 
         //SaveCurrentProgress();
+        PreBanning();
 
         bool solvable = isSolvable();
         if (!solvable)
@@ -802,6 +805,90 @@ public abstract class NewModel
         entropies[i] = Math.Log(sum) - sumsOfWeightLogWeights[i] / sum;
     }
 
+    void PreBanning()
+    {
+        for (int i = 0; i < wave.Length; i++)
+        {
+            int x1 = i % MX;
+            int y1 = i / MX;
+
+            string currentCluster = inputField[i];
+
+            for (int d = 0; d < 4; d++)
+            {
+                int x2 = x1 + dx[d];
+                int y2 = y1 + dy[d];
+                if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+
+                if (x2 < 0) x2 += MX;
+                else if (x2 >= MX) x2 -= MX;
+                if (y2 < 0) y2 += MY;
+                else if (y2 >= MY) y2 -= MY;
+
+                int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+                string neighbourCluster = inputField[i2];
+
+                if (nodeDepth[neighbourCluster] <= nodeDepth[currentCluster]) continue;     //Es sollen nur von einem aktuellen Root Pixel ausgehen, dessen Nachbar kleiner bsp. Wasser ist um in diese zu limitieren
+
+                /* Ziel dieser Funktion:
+                 * - Patterns die nicht kompatibel sein können komplett bannen
+                 * - Entropy und Compatible Anzahl anpassen falls Nachbarn nicht kompatibel sein können ? Evtl durchs bannen schon beseitigt?
+                 * 
+                 */
+
+                //Ermittle alle Patterns, die nicht kompatibel sein können zum niedrigeren Cluster nebenan
+                //Falls es Patterns gibt, die nicht kompatibel sein können zum Nachbarn, diese bannen -> stack.Add(i, t)
+
+                int[][] propagatorDirection = propagator[currentCluster][d];    //alle erlaubten patterns vom übergeordneten Cluster in die Himmelsrichtung
+
+                HashSet<int> allowedPatterns = new();
+                HashSet<int> toBannedPatterns = new HashSet<int>(clusterPatterns[currentCluster]);
+
+
+                /* Prüfe alle Patterns ab, die in die angegebene Richtung erlaubte Patterns haben
+                 * bspw. alle PatternIDs abspeichern, die nach rechts mind. ein erlaubtes Pattern aus Wassercluster besitzt
+                 * 
+                 */
+                for(int t = 0; t < globalPatternCount; t++)
+                {
+                    foreach(int patternID in propagatorDirection[t])
+                    {
+                        if (clusterPatterns[neighbourCluster].Contains(patternID))
+                        {
+                            allowedPatterns.Add(t);
+                        }
+                    }
+                }
+
+                //Im Umkehrschluss müssen nun alle nicht erlaubten Patterns gebannt werden
+                /* Nicht eigenhändig neu berechnet werden müssen: entropy, sumOfOnes, sumsOfWeights, sumsOfWeightLogWeights und vor ALLEM compatible
+                 * wave wird automatisch bei der neuen Ban Funktion geändert, genauso dann entropy und die sums-variablen
+                 */
+
+                toBannedPatterns.ExceptWith(allowedPatterns);
+
+                //evtl auch einfach alle dem Stack hinzufügen und dann die vordefinierte Ban Funktion nutzen? Diese Testen
+
+                foreach(int patternID in toBannedPatterns)
+                {
+                    stack.Add((i, patternID));
+                }
+
+                //PreBan erstmal noch nicht nutzen. Erst die variante ausprobieren.
+                //PreBan(i2, t, opposite[d]);      //d -> Die Richtung, in der die Teile gebannt werden müssen
+
+            }
+        }
+
+        Propagate();       //Stack der durchs PreBanning angefallen ist, muss abgearbeitet werden
+    }
+
+    void PreBan(int i, int t, int d)
+    {
+        
+        //Alle betroffenen umliegenden Pixel zum Stack hinzufügen
+    }
+
     void Clear()
     {
         modelStates = new();
@@ -818,6 +905,13 @@ public abstract class NewModel
             */
 
             wave[i] = new();
+
+            /*
+            for(int j = 0; j < globalPatternCount; j++)
+            {
+                wave[i].Add(j, false);
+            }
+            */
 
             //ADDITION
             foreach(var t in clusterPatterns[nodeName])
@@ -856,7 +950,7 @@ public abstract class NewModel
 
                         int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
 
-                        string neighbourNodeName = inputField[i];
+                        string neighbourNodeName = inputField[i2];
                         var p = propagator[neighbourNodeName];
                         var p2 = p[opposite[d]];
                         var p3 = p2[t];
