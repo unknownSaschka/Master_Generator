@@ -110,7 +110,7 @@ public class PrototypeParser
         return newTexture;
     }
 
-    public Texture2D CutTexture(Texture2D oldTexture, int N)
+    public static Texture2D CutTexture(Texture2D oldTexture, int N)
     {
         int pixel = N - 1;
         Texture2D newTexture = new Texture2D(oldTexture.width - pixel, oldTexture.height - pixel);

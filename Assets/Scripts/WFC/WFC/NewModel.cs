@@ -32,6 +32,8 @@ public abstract class NewModel
     protected int backtrackTries;
     protected int backtrackTriesCounter;
 
+    public double[] entropySave;
+
     //--------------------------------------------
 
     //[Position im Feld][Anzahl aller Patterns]
@@ -205,6 +207,7 @@ public abstract class NewModel
         System.Random random = rng;
 
         PreBanning();
+        SaveEntropies();
 
         //SaveCurrentProgress();
 
@@ -216,6 +219,8 @@ public abstract class NewModel
         }
 
         //remainingNormal = -1;
+
+        
 
         //Limit ist optional. Wurde keines gesetzt, so ist es -1 also so gesehen unendlich tries
         for (int l = 0; l < limit || limit < 0; l++)
@@ -249,7 +254,7 @@ public abstract class NewModel
                 {
                     //return false;
                     backtrackTriesCounter++;
-                    UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+                    //UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
                     if (backtrackTries < backtrackTriesCounter) return false;
 
                     //first try to go back one step
@@ -618,6 +623,8 @@ public abstract class NewModel
 
         int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
 
+        UnityEngine.Debug.Log("Chose ID: " + r);
+
         /*
         for (int t = 0; t < T[nodeName]; t++)
         {
@@ -673,11 +680,12 @@ public abstract class NewModel
                 int y2 = y1 + dy[d];
                 if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
 
+                /*
                 if (x2 < 0) x2 += MX;
                 else if (x2 >= MX) x2 -= MX;
                 if (y2 < 0) y2 += MY;
                 else if (y2 >= MY) y2 -= MY;
-
+                */
                 
                 int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
                 string neighbourNodeName = inputField[i2];
@@ -725,7 +733,14 @@ public abstract class NewModel
                     int[] comp = compat[t2];
 
                     comp[d]--;
-                    
+
+                    if (t2 == 1)
+                    {
+                        int x = i2 % MX;
+                        int y = i2 / MX;
+                        //UnityEngine.Debug.Log($"Ban: ({x},{y}):{t2}");
+                    }
+
                     if (comp[d] == 0) Ban(i2, t2);
                 }
             }
@@ -785,6 +800,8 @@ public abstract class NewModel
         for (int d = 0; d < 4; d++) comp[d] = 0;
         //stack[stacksize] = (i, t);                  //Für jedes Tile das gebannt wurde, wird dieses auf den Stack geschoben, da alle angrenzenden Tiles nun auch geprüft werden müssen
         //stacksize++;
+        
+
         stack.Add((i, t));
         string nodeName = inputField[i];
 
@@ -812,6 +829,8 @@ public abstract class NewModel
             int x1 = i % MX;
             int y1 = i / MX;
 
+            if(x1 + N > MX || y1 + N > MY) continue;
+
             string currentCluster = inputField[i];
 
             for (int d = 0; d < 4; d++)
@@ -820,15 +839,14 @@ public abstract class NewModel
                 int y2 = y1 + dy[d];
                 if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
 
-                if (x2 < 0) x2 += MX;
-                else if (x2 >= MX) x2 -= MX;
-                if (y2 < 0) y2 += MY;
-                else if (y2 >= MY) y2 -= MY;
+                
 
                 int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
                 string neighbourCluster = inputField[i2];
 
                 if (nodeDepth[neighbourCluster] <= nodeDepth[currentCluster]) continue;     //Es sollen nur von einem aktuellen Root Pixel ausgehen, dessen Nachbar kleiner bsp. Wasser ist um in diese zu limitieren
+                UnityEngine.Debug.Log($"PreBanning at:{x2}, {y2}");
+
 
                 /* Ziel dieser Funktion:
                  * - Patterns die nicht kompatibel sein können komplett bannen
@@ -871,7 +889,11 @@ public abstract class NewModel
 
                 foreach(int patternID in toBannedPatterns)
                 {
-                    stack.Add((i, patternID));
+                    if(!stack.Contains((i, patternID)))
+                    {
+                        //stack.Add((i, patternID));
+                        Ban(i, patternID);
+                    }
                 }
 
                 //PreBan erstmal noch nicht nutzen. Erst die variante ausprobieren.
@@ -1156,7 +1178,8 @@ public abstract class NewModel
         for (int i = 0; i < inputField.Length; i++)
         {
             //if (!(i % MX + N > MX || i / MX + N > MY)) continue;
-
+            int x1 = i % MX;
+            int y1 = i / MX;
             int trueAmount = 0;
 
             foreach (var l in wave[i])
@@ -1166,6 +1189,7 @@ public abstract class NewModel
 
             if (trueAmount == 0)
             {
+                //UnityEngine.Debug.Log($"Not Solvable at x:{x1}, y:{y1}, i{i}");
                 return false;      //If an undecidable piece exist, return false
             }
         }
@@ -1243,6 +1267,16 @@ public abstract class NewModel
         }
 
         return -1;
+    }
+
+    private void SaveEntropies()
+    {
+        entropySave = new double[wave.Length];
+
+        for(int i = 0; i < wave.Length; i++)
+        {
+            entropySave[i] = entropies[i];
+        }
     }
 
     public abstract void Save(string filename);

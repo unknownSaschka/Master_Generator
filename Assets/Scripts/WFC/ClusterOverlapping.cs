@@ -19,7 +19,7 @@ public class ClusterOverlapping : NewModel
 
 
     public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, 
-        ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot)
+        ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot, string patternOutputFolder)
         : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit, backtrackTries, backtracking, clusterBanning, banLowerClusterInRoot)
     {
         //load all samples for each node
@@ -259,7 +259,7 @@ public class ClusterOverlapping : NewModel
             output += $"{t.Key}: {t.Value}\r\n";
         }
         UnityEngine.Debug.Log(output);
-        SavePatterns();
+        SavePatterns(patternOutputFolder);
     }
 
 
@@ -598,7 +598,7 @@ public class ClusterOverlapping : NewModel
         */
     }
 
-    public void SavePatterns()
+    public void SavePatterns(string patternOutputFolder)
     {
         //Dictionary<int, int[]> translatedPatterns = new();
 
@@ -616,12 +616,12 @@ public class ClusterOverlapping : NewModel
             }
 
             
-            string ImageOutputFolder = "E:\\Studium\\Masterarbeit\\WFC Testing\\simple\\Graph\\patterns\\";
-            if (!File.Exists($"{ImageOutputFolder}{patternID}.png"))
+            //string ImageOutputFolder = "E:\\Studium\\Masterarbeit\\WFC Testing\\simple\\Graph\\patterns\\";
+            if (!File.Exists($"{patternOutputFolder}{patternID}.png"))
             {
                 Texture2D result = GetTextureFromInt(patternWithColorInt, true);
                 var texturePNG = result.EncodeToPNG();
-                File.WriteAllBytes($"{ImageOutputFolder}{patternID}.png", texturePNG);
+                File.WriteAllBytes($"{patternOutputFolder}{patternID}.png", texturePNG);
             }
         }
     }

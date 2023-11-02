@@ -121,4 +121,9 @@ static class BitmapHelper
     {
         return Math.Abs(value1 - value2) < 0.0000001;
     }
+
+    public static double Map(this double value, double fromSource, double toSource, double fromTarget, double toTarget)
+    {
+        return (value - fromSource) / (toSource - fromSource) * (toTarget - fromTarget) + fromTarget;
+    }
 }

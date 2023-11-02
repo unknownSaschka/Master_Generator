@@ -89,6 +89,17 @@ public class WFCDrawer : Editor
             wfc.GenerateClusteredOverlapping();
         }
 
+        if (GUILayout.Button("Generate Clustered with new Random Seed"))
+        {
+            wfc.NewRandomSeed();
+            wfc.GenerateClusteredOverlapping();
+        }
+
+        if (GUILayout.Button("Generate Cycles"))
+        {
+            wfc.AutomaticGenerationTesting();
+        }
+
         GUILayout.Label("Step by Step Generation");
 
         if (GUILayout.Button("Init Step Generation"))
@@ -106,6 +117,11 @@ public class WFCDrawer : Editor
         if (GUILayout.Button("Save Result"))
         {
             wfc.SaveResult();
+        }
+
+        if (GUILayout.Button("New Random Seed"))
+        {
+            wfc.NewRandomSeed();
         }
     }
 

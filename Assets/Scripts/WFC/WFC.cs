@@ -11,6 +11,7 @@ using UnityEngine;
 public class WFC : MonoBehaviour
 {
     System.Random random = new();
+    System.Random randomNG = new();
 
     public string ImageOutputFolder;
 
@@ -55,6 +56,7 @@ public class WFC : MonoBehaviour
     public int Retries = 20;
 
     public int seed = 1337;
+    public int generationCycles = 10;
 
     // Start is called before the first frame update
     void Start()
@@ -165,6 +167,11 @@ public class WFC : MonoBehaviour
     }
 
     //------------------ NEW VARIANT -------------------------------
+    public void NewRandomSeed()
+    {
+        seed = randomNG.Next();
+    }
+
     public void LoadJSON()
     {
         Nodes = JSONParser.ParseJSON(GraphPath);
@@ -182,20 +189,21 @@ public class WFC : MonoBehaviour
     public void PrepareClusteredOverlapping()
     {
         Dictionary<string, Node> leafs = new();
+        string patternsFolder = Path.GetDirectoryName(GraphPath) + "\\patterns\\";
 
-        random = new System.Random(seed);
+        //random = new System.Random(seed);
 
-        foreach(var node in Nodes)
+        foreach (var node in Nodes)
         {
             //if(node.Value.Sample == null) continue;
             leafs.Add(node.Key, node.Value);
         }
 
         clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, 
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot);
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder);
     }
 
-    public void GenerateClusteredOverlapping()
+    public bool GenerateClusteredOverlapping()
     {
         /*
         for(int i = 0; i < 100; i++)
@@ -205,26 +213,36 @@ public class WFC : MonoBehaviour
             if (success) break;
         }
         */
-        clusterModel.Run(random, Limit);
+        random = new System.Random(seed);
+        bool finished = clusterModel.Run(random, Limit);
+        Debug.Log(finished);
 
         int[] image = clusterModel.GenerateBitmap();
         Texture2D result = GetTextureFromInt(image, true);
-        PrototypeParser p = new PrototypeParser();
-        result = p.CutTexture(result, SampleSize);
+        result = PrototypeParser.CutTexture(result, SampleSize);
+        Result = result;
         SetImageOnObject(ResultPlane, result);
 
+        Texture2D entropyTexture = GenerateEntropyGraphic(clusterModel.entropySave);
+        SetImageOnObject(FinishedLowerClustersPlane, entropyTexture);
+
+        return finished;
+
+        /*
         clusterModel.observed = clusterModel.preFinishedObserved;
         clusterModel.wave = clusterModel.preFinishedWave;
         int[] preImage = clusterModel.GenerateBitmap();
         Texture2D preResult = GetTextureFromInt(preImage, true);
         preResult = p.CutTexture(preResult, SampleSize);
         SetImageOnObject(FinishedLowerClustersPlane, preResult);
+        */
     }
 
     public void InitClusteredStepGeneration()
     {
         Dictionary<string, Node> leafs = new();
         random = new System.Random(seed);
+        string patternsFolder = Path.GetDirectoryName(GraphPath) + "\\patterns\\";
 
         foreach (var node in Nodes)
         {
@@ -233,7 +251,7 @@ public class WFC : MonoBehaviour
         }
 
         clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height,
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot);
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder);
 
         clusterModel.InitStepRun(random);
     }
@@ -244,8 +262,7 @@ public class WFC : MonoBehaviour
 
         int[] image = clusterModel.GenerateBitmap();
         Texture2D result = GetTextureFromInt(image, true);
-        PrototypeParser p = new PrototypeParser();
-        result = p.CutTexture(result, SampleSize);
+        result = PrototypeParser.CutTexture(result, SampleSize);
         SetImageOnObject(ResultPlane, result);
 
         /*
@@ -300,7 +317,7 @@ public class WFC : MonoBehaviour
         
         resultTexture.filterMode = FilterMode.Point;
         resultTexture.Apply();
-        Result = resultTexture;
+        //Result = resultTexture;
 
         return resultTexture;
     }
@@ -321,9 +338,58 @@ public class WFC : MonoBehaviour
         PrototypeBitmapTexture = newPrototype;
     }
 
+    public void AutomaticGenerationTesting()
+    {
+        for(int i = 0; i < generationCycles; i++)
+        {
+            NewRandomSeed();
+
+            if (GenerateClusteredOverlapping())
+            {
+                var texturePNG = Result.EncodeToPNG();
+                string sbp = Path.GetFileNameWithoutExtension(GraphPath);
+                string resultsFolder = Path.GetDirectoryName(GraphPath) + "\\results\\";
+
+                string filename = $"{resultsFolder}Sample={sbp}_N={SampleSize}_seed={seed}.png";
+
+                if (!File.Exists(filename))
+                {
+                    File.WriteAllBytes(filename, texturePNG);
+                }
+            }
+        }
+    }
+
     public void SaveResult()
     {
         var texturePNG = Result.EncodeToPNG();
         File.WriteAllBytes($"{ImageOutputFolder}Sample N={SampleSize}_{random.Next()}.png", texturePNG);
+    }
+
+    public Texture2D GenerateEntropyGraphic(double[] entropies)
+    {
+        double minValue = int.MaxValue, maxValue = int.MinValue;
+
+        foreach(double e in entropies)
+        {
+            if(e < minValue) minValue = e;
+            if(e > maxValue) maxValue = e;
+        }
+
+        Color32[] colors = new Color32[Width * Height];
+
+        for(int i = 0; i < entropies.Length; i++)
+        {
+            double g = entropies[i].Map(minValue, maxValue, 255.0, 0.0);
+            colors[i] = new Color32(255, (byte)g, 0, 255);
+        }
+
+        colors = colors.FlipVertically(Width, Height);
+        Texture2D tex = new Texture2D(Width, Height);
+        tex.SetPixels32(colors);
+        tex.filterMode = FilterMode.Point;
+        tex.Apply();
+
+        return PrototypeParser.CutTexture(tex, SampleSize);
     }
 }
