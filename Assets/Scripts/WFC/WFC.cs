@@ -217,11 +217,16 @@ public class WFC : MonoBehaviour
         bool finished = clusterModel.Run(random, Limit);
         Debug.Log(finished);
 
-        int[] image = clusterModel.GenerateBitmap();
+        int[] image = clusterModel.GenerateBitmap(clusterModel.wave);
         Texture2D result = GetTextureFromInt(image, true);
         result = PrototypeParser.CutTexture(result, SampleSize);
         Result = result;
         SetImageOnObject(ResultPlane, result);
+
+        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave);
+        Texture2D preWaveTexture = GetTextureFromInt(preImage, true);
+        preWaveTexture = PrototypeParser.CutTexture(preWaveTexture, SampleSize);
+        SetImageOnObject(SamplePlane, preWaveTexture);
 
         Texture2D entropyTexture = GenerateEntropyGraphic(clusterModel.entropySave);
         SetImageOnObject(FinishedLowerClustersPlane, entropyTexture);
@@ -260,10 +265,15 @@ public class WFC : MonoBehaviour
     {
         clusterModel.StepRun();
 
-        int[] image = clusterModel.GenerateBitmap();
+        int[] image = clusterModel.GenerateBitmap(clusterModel.wave);
         Texture2D result = GetTextureFromInt(image, true);
         result = PrototypeParser.CutTexture(result, SampleSize);
         SetImageOnObject(ResultPlane, result);
+
+        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave);
+        Texture2D preWaveTexture = GetTextureFromInt(preImage, true);
+        preWaveTexture = PrototypeParser.CutTexture(preWaveTexture, SampleSize);
+        SetImageOnObject(SamplePlane, preWaveTexture);
 
         /*
         clusterModel.observed = clusterModel.preFinishedObserved;

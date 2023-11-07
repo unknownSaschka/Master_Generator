@@ -33,6 +33,7 @@ public abstract class NewModel
     protected int backtrackTriesCounter;
 
     public double[] entropySave;
+    public Dictionary<int, bool>[] waveSave;
 
     //--------------------------------------------
 
@@ -208,6 +209,7 @@ public abstract class NewModel
 
         PreBanning();
         SaveEntropies();
+        SaveWave();
 
         //SaveCurrentProgress();
 
@@ -328,6 +330,7 @@ public abstract class NewModel
 
         //SaveCurrentProgress();
         PreBanning();
+        SaveWave();
 
         bool solvable = isSolvable();
         if (!solvable)
@@ -761,7 +764,7 @@ public abstract class NewModel
                 contradiction = true;
                 int x = i % MX;
                 int y = i / MX;
-                UnityEngine.Debug.Log($"Contradiction at: x:{x}, y:{y}");
+                UnityEngine.Debug.Log($"Contradiction at: x:{x}, y:{y}, i:{i}");
                 break;
             }
         }
@@ -1276,6 +1279,16 @@ public abstract class NewModel
         for(int i = 0; i < wave.Length; i++)
         {
             entropySave[i] = entropies[i];
+        }
+    }
+
+    private void SaveWave()
+    {
+        waveSave = new Dictionary<int, bool>[wave.Length];
+
+        for (int i = 0; i < wave.Length; i++)
+        {
+            waveSave[i] = new Dictionary<int, bool>(wave[i]);
         }
     }
 

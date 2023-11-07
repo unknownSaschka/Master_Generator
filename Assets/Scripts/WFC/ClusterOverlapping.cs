@@ -314,7 +314,7 @@ public class ClusterOverlapping : NewModel
         return true;
     }
 
-    public int[] GenerateBitmap()
+    public int[] GenerateBitmap(Dictionary<int, bool>[] wave)
     {
         int[] bitmap = new int[MX * MY];
 
@@ -341,7 +341,8 @@ public class ClusterOverlapping : NewModel
                     //var nodeColors = colors[nodeName];
                     //var nodePatterns = patterns[nodeName];
                     var currentObserved = observed[x - dx + (y - dy) * MX];
-                    var currentPosition = dx + dy * N;
+                    //var currentPosition = dx + dy * N;
+                    var currentPosition = 0;        //Aus dem Pattern wird eh immer der Pixel links oben genutzt. Da das Bild eh gecropped wird, kann fest Pos. 0 genommen werden
 
                     bitmap[x + y * MX] = 0;
 
@@ -368,6 +369,25 @@ public class ClusterOverlapping : NewModel
                 int contributors = 0, r = 0, g = 0, b = 0;
                 int x = i % MX, y = i / MX;
                 string nodeName = inputField[i];
+
+                /*
+                foreach(var entry in wave[i])
+                {
+                    if (entry.Value)
+                    {
+                        if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
+
+                        contributors++;
+                        int argb = colors[patterns[entry.Key][4]];
+                        r += (argb & 0xff0000) >> 16;
+                        g += (argb & 0xff00) >> 8;
+                        b += argb & 0xff;
+                    }
+                }
+                */
+
+                
+                
                 for (int dy = 0; dy < N; dy++) for (int dx = 0; dx < N; dx++)
                     {
                         int sx = x - dx;
@@ -392,22 +412,11 @@ public class ClusterOverlapping : NewModel
                                 b += argb & 0xff;
                             }
                         }
-                        /*
-                        for (int t = 0; t < globalPatternCount; t++)
-                        {
-                            if (wave[s][t])
-                            {
-                                contributors++;
-                                int argb = colors[patterns[t][dx + dy * N]];
-                                r += (argb & 0xff0000) >> 16;
-                                g += (argb & 0xff00) >> 8;
-                                b += argb & 0xff;
-                            }
-                        }
-                        */
                     }
+                
+                
 
-                if(contributors == 0)
+                if (contributors == 0)
                 {
                     bitmap[i] = 0;
                 }
@@ -417,6 +426,7 @@ public class ClusterOverlapping : NewModel
                 }
             }
 
+            /*
             if (preDecided != null)
             {
                 //------------------ADDDITION TESTING-----------------------
@@ -455,6 +465,7 @@ public class ClusterOverlapping : NewModel
                     }
                 }
             }
+            */
         
         }
 
