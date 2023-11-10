@@ -919,16 +919,11 @@ public abstract class NewModel
             */
 
             wave[i] = new();
-
-            /*
-            for(int j = 0; j < globalPatternCount; j++)
-            {
-                wave[i].Add(j, false);
-            }
-            */
+            int x1 = i % MX;
+            int y1 = i / MX;
 
             //ADDITION
-            foreach(var t in clusterPatterns[nodeName])
+            foreach (var t in clusterPatterns[nodeName])
             {
                 //wave[i][t] = true;      //Wird behandelt: Wenn wave null ist, dann gibt es dieses pattern für den Cluster vorerst gar nicht
                 if (wave[i].ContainsKey(t))
@@ -956,21 +951,24 @@ public abstract class NewModel
                          */
 
                         //------New variant of compatible array init------------
-                        int x1 = i % MX;
-                        int y1 = i / MX;
+                        
 
                         //if (x1 < 0 || y1 < 0 || x1 + N - 1 > MX || y1 + N - 1 > MY) continue;
 
                         int x2 = x1 + dx[d];
                         int y2 = y1 + dy[d];
-                        if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+                        if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
+                        {
+                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            continue;
+                        }
 
                         int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
 
                         string neighbourNodeName = inputField[i2];
                         int neighbourNodeDepth = nodeDepth[neighbourNodeName];
 
-                        
+
                         /*
                          * 3 cases:
                          * - Benachbarte Pixel sind im selben Cluster: Gleich bleibend wie im orig. WFC
@@ -980,37 +978,34 @@ public abstract class NewModel
                          *
                          */
 
-                        if(currentNodeDepth == neighbourNodeDepth)
+                        if(neighbourNodeDepth == currentNodeDepth)
                         {
-                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
                         }
-                        else if(currentNodeDepth < neighbourNodeDepth)
+                        else if(neighbourNodeDepth > currentNodeDepth)
                         {
-                            //current root, neighbour water/gras
-                            var p = propagator[nodeName];
-                            var p2 = p[opposite[d]][t];
-
-                            HashSet<int> patternComp = new HashSet<int>();
-                            foreach(int pattID in clusterPatterns[neighbourNodeName])
-                            {
-                                if(p2.Contains(pattID)) patternComp.Add(pattID);
-                            }
-
-                            compatible[i][t][d] = patternComp.Count;
-                            //compatible[i][t][d] = p2.Length;
+                            //nachbar water, current root
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
                         else
                         {
-                            //current grass/water, neighbour root
-                            var p = propagator[neighbourNodeName];      //Hole den Propagator von root, da hier alle kompatiblen Patterns enthalten sein können
-                            compatible[i][t][d] = p[opposite[d]][t].Length;
+                            //nachbar root, current water
+                            //compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
+                            
+                            var p = propagator[nodeName];
+                            var p2 = p[opposite[d]][t];
+                            HashSet<int> patternComp = new HashSet<int>();
+                            foreach (int pattID in clusterPatterns[neighbourNodeName])
+                            {
+                                if (p2.Contains(pattID)) patternComp.Add(pattID);
+                            }
+                            compatible[i][t][d] = patternComp.Count;
+                            
                         }
+
                     }
                     else
                     {
-                        int x1 = i % MX;
-                        int y1 = i / MX;
-
                         int x2 = x1 + dx[d];
                         int y2 = y1 + dy[d];
                         //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
