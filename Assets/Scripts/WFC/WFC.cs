@@ -28,7 +28,8 @@ public class WFC : MonoBehaviour
     public GameObject PrototypePlane;
     public GameObject SamplePlane;
     public GameObject ResultPlane;
-    public GameObject FinishedLowerClustersPlane;
+    public GameObject HeatMapBanning;
+    public GameObject HeatMapStepped;
 
     private Texture2D Result;
 
@@ -43,6 +44,7 @@ public class WFC : MonoBehaviour
     public Helper.Heuristic Heuristic;
     public Helper.ExtendedHeuristic ExtendedHeuristic;
     public Helper.CompatibleInit CompatibleInit;
+    public Helper.BitmapGenerationMethod BitmapGenerationMethod;
     public int BacktrackTries;
     public bool Backtracking;
     public bool ClusterBanning;
@@ -200,7 +202,7 @@ public class WFC : MonoBehaviour
         }
 
         clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, 
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder);
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, BitmapGenerationMethod);
     }
 
     public bool GenerateClusteredOverlapping()
@@ -217,19 +219,20 @@ public class WFC : MonoBehaviour
         bool finished = clusterModel.Run(random, Limit);
         Debug.Log(finished);
 
-        int[] image = clusterModel.GenerateBitmap(clusterModel.wave);
+        int[] image = clusterModel.GenerateBitmap(clusterModel.wave, false);
         Texture2D result = GetTextureFromInt(image, true);
         result = PrototypeParser.CutTexture(result, SampleSize);
         Result = result;
         SetImageOnObject(ResultPlane, result);
 
-        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave);
+        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave, true);
         Texture2D preWaveTexture = GetTextureFromInt(preImage, true);
         preWaveTexture = PrototypeParser.CutTexture(preWaveTexture, SampleSize);
         SetImageOnObject(SamplePlane, preWaveTexture);
 
         Texture2D entropyTexture = GenerateEntropyGraphic(clusterModel.entropySave);
-        SetImageOnObject(FinishedLowerClustersPlane, entropyTexture);
+        entropyTexture = PrototypeParser.CutTexture(entropyTexture, SampleSize);
+        SetImageOnObject(HeatMapBanning, entropyTexture);
 
         return finished;
 
@@ -256,7 +259,7 @@ public class WFC : MonoBehaviour
         }
 
         clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height,
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder);
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, BitmapGenerationMethod);
 
         clusterModel.InitStepRun(random);
     }
@@ -265,15 +268,19 @@ public class WFC : MonoBehaviour
     {
         clusterModel.StepRun();
 
-        int[] image = clusterModel.GenerateBitmap(clusterModel.wave);
+        int[] image = clusterModel.GenerateBitmap(clusterModel.wave, false);
         Texture2D result = GetTextureFromInt(image, true);
         result = PrototypeParser.CutTexture(result, SampleSize);
         SetImageOnObject(ResultPlane, result);
 
-        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave);
+        int[] preImage = clusterModel.GenerateBitmap(clusterModel.waveSave, true);
         Texture2D preWaveTexture = GetTextureFromInt(preImage, true);
         preWaveTexture = PrototypeParser.CutTexture(preWaveTexture, SampleSize);
         SetImageOnObject(SamplePlane, preWaveTexture);
+
+        Texture2D entropyStep = GenerateEntropyGraphic(clusterModel.entropySaveStepped);
+        entropyStep = PrototypeParser.CutTexture(entropyStep, SampleSize);
+        SetImageOnObject(HeatMapStepped, entropyStep);
 
         /*
         clusterModel.observed = clusterModel.preFinishedObserved;
@@ -373,7 +380,8 @@ public class WFC : MonoBehaviour
     public void SaveResult()
     {
         var texturePNG = Result.EncodeToPNG();
-        File.WriteAllBytes($"{ImageOutputFolder}Sample N={SampleSize}_{random.Next()}.png", texturePNG);
+        string resultsFolder = Path.GetDirectoryName(GraphPath) + "\\results\\";
+        File.WriteAllBytes($"{resultsFolder}Sample N={SampleSize}_{random.Next()}.png", texturePNG);
     }
 
     public Texture2D GenerateEntropyGraphic(double[] entropies)
@@ -400,6 +408,6 @@ public class WFC : MonoBehaviour
         tex.filterMode = FilterMode.Point;
         tex.Apply();
 
-        return PrototypeParser.CutTexture(tex, SampleSize);
+        return tex;
     }
 }

@@ -16,7 +16,9 @@ public static class Helper
     public enum Heuristic { Entropy, MRV, Scanline };
     public enum ExtendedHeuristic { Original, LowestNodesFirst }
 
-    public enum CompatibleInit { Original, New }
+    public enum CompatibleInit { Original, New, New2 }
+
+    public enum BitmapGenerationMethod { Original, New }
 
     /// <summary>
     /// Gibt anhand der Gewichtungen der einzelnen Elemente des Arrays eine zufällige Position
@@ -46,7 +48,7 @@ public static class Helper
         for (int i = 0; i < width * height; i++)
         {
             int x = i % width;
-            int y = i / height;
+            int y = i / width;
 
             int newY = height - y - 1;
 

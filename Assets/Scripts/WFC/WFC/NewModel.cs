@@ -5,8 +5,10 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Runtime.Remoting.Messaging;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 using static Helper;
 using static UnityEditor.PlayerSettings;
 using static UnityEngine.EventSystems.EventTrigger;
@@ -33,6 +35,7 @@ public abstract class NewModel
     protected int backtrackTriesCounter;
 
     public double[] entropySave;
+    public double[] entropySaveStepped;
     public Dictionary<int, bool>[] waveSave;
 
     //--------------------------------------------
@@ -208,8 +211,8 @@ public abstract class NewModel
         System.Random random = rng;
 
         PreBanning();
-        SaveEntropies();
-        SaveWave();
+        entropySave = SaveEntropies();
+        waveSave = SaveWave();
 
         //SaveCurrentProgress();
 
@@ -330,7 +333,8 @@ public abstract class NewModel
 
         //SaveCurrentProgress();
         PreBanning();
-        SaveWave();
+        waveSave = SaveWave();
+        entropySave = SaveEntropies();
 
         bool solvable = isSolvable();
         if (!solvable)
@@ -351,6 +355,9 @@ public abstract class NewModel
             //if (inputField[node].Equals("root")) Debugger.Break();
             Observe(node, _random);
             bool success = Propagate();
+
+            //waveSave = SaveWave();
+            entropySaveStepped = SaveEntropies();
             //UnityEngine.Debug.Log($"Success: {success}");
             if (!success)
             {
@@ -683,20 +690,17 @@ public abstract class NewModel
                 int y2 = y1 + dy[d];
                 if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
 
-                /*
-                if (x2 < 0) x2 += MX;
-                else if (x2 >= MX) x2 -= MX;
-                if (y2 < 0) y2 += MY;
-                else if (y2 >= MY) y2 -= MY;
-                */
                 
                 int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
                 string neighbourNodeName = inputField[i2];
+                int currentNodeDepth = nodeDepth[currentNodeName];
+                int neighbourNodeDepth = nodeDepth[neighbourNodeName];
                 //if (neighbourNodeName != currentNodeName) continue;                                 //Falls das benachbarte Feld zu einem anderen Cluster gehört, vorerst überspringen
 
                 //current node name ist identisch mit dem nachbar, also kann ich dieses einfach weiter laufen lassen
                 int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
-                //int[] p = propagator[neighbourNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
+                //int[] p = propagator[currentNodeName][d][t1];        //holt sich alle möglichen Teile für diese Konstellation und das spezifische Tile heraus
 
 
                 //TESTING: if p == 0 skip, because pattern isn't available
@@ -712,38 +716,22 @@ public abstract class NewModel
                  * Compatible sollte schonmal mit der richtigen Anzahl des benachbarten Tiles initialisiert werden, auch wenn dies von einem anderen Cluster ist.
                  */
 
-                int currentNodeDepth = nodeDepth[currentNodeName];
-                int neighbourNodeDepth = nodeDepth[neighbourNodeName];
+                
 
-                //int[][] compat = compatible[i2];    
                 int[][] compat = compatible[i2];    
 
                 for (int l = 0; l < p.Length; l++)
                 {
-                    /*
-                    if (remainingNormal == 0 && currentNodeName == "root" && neighbourNodeName != "root" && banLowerClusterInRoot)
-                    {
-                        //TESTIMG: No banning of already set pieces
-                        //UnityEngine.Debug.Log("oi");
-                        continue;
-                    }
-                    */
-
                     if (banLowerClusterInRoot && currentNodeDepth < neighbourNodeDepth) continue;
-                    
+
+                    if (i2 == 0)
+                    {
+                        //Debugger.Break();
+                    }
 
                     int t2 = p[l];
                     int[] comp = compat[t2];
-
                     comp[d]--;
-
-                    if (t2 == 1)
-                    {
-                        int x = i2 % MX;
-                        int y = i2 / MX;
-                        //UnityEngine.Debug.Log($"Ban: ({x},{y}):{t2}");
-                    }
-
                     if (comp[d] == 0) Ban(i2, t2);
                 }
             }
@@ -832,7 +820,7 @@ public abstract class NewModel
             int x1 = i % MX;
             int y1 = i / MX;
 
-            if(x1 + N > MX || y1 + N > MY) continue;
+            //if(x1 + N > MX || y1 + N > MY) continue;
 
             string currentCluster = inputField[i];
 
@@ -920,6 +908,7 @@ public abstract class NewModel
         for (int i = 0; i < wave.Length; i++)
         {
             string nodeName = inputField[i];
+            int currentNodeDepth = nodeDepth[nodeName];
             decided[i] = false;
             /*
             for (int t = 0; t < T[nodeName]; t++)
@@ -955,11 +944,70 @@ public abstract class NewModel
                 {
                     if (compatibleInit == CompatibleInit.Original)
                     {
-                        compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                        //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                        compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                    }
+                    else if(compatibleInit == CompatibleInit.New)
+                    {
+                        /*
+                         * INFO:
+                         * Orig. WFC hat hier normalerweise keine Positionsabfragen. Problem hier ist, dass dy nach unten -1 ist, also eig. nach oben zeigt.
+                         * Dies muss gefixed werden und an anderen Stelle nim Code nach diesem Bug suchen.
+                         */
+
+                        //------New variant of compatible array init------------
+                        int x1 = i % MX;
+                        int y1 = i / MX;
+
+                        //if (x1 < 0 || y1 < 0 || x1 + N - 1 > MX || y1 + N - 1 > MY) continue;
+
+                        int x2 = x1 + dx[d];
+                        int y2 = y1 + dy[d];
+                        if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
+
+                        int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
+                        string neighbourNodeName = inputField[i2];
+                        int neighbourNodeDepth = nodeDepth[neighbourNodeName];
+
+                        
+                        /*
+                         * 3 cases:
+                         * - Benachbarte Pixel sind im selben Cluster: Gleich bleibend wie im orig. WFC
+                         * - Aktuelle Pixel (root) ist niedrigere Depth als der Nachbar (water): Zählen wie viele kompatible Pattern es von root zu water Tiles gibt und diese Anzahl speichern
+                         * - Aktuelle Pixel (water) ist höhere Depth als der Nachbar (root): Zählen wie viele kompatible Pattern es aus Water gibt, die es zu root Teilen gibt und diese Abspeichern.
+                         *      Ansonsten erstmal standard Handhabung wie im orig. WFC und bei Problemen dies mal probieren
+                         *
+                         */
+
+                        if(currentNodeDepth == neighbourNodeDepth)
+                        {
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                        }
+                        else if(currentNodeDepth < neighbourNodeDepth)
+                        {
+                            //current root, neighbour water/gras
+                            var p = propagator[nodeName];
+                            var p2 = p[opposite[d]][t];
+
+                            HashSet<int> patternComp = new HashSet<int>();
+                            foreach(int pattID in clusterPatterns[neighbourNodeName])
+                            {
+                                if(p2.Contains(pattID)) patternComp.Add(pattID);
+                            }
+
+                            compatible[i][t][d] = patternComp.Count;
+                            //compatible[i][t][d] = p2.Length;
+                        }
+                        else
+                        {
+                            //current grass/water, neighbour root
+                            var p = propagator[neighbourNodeName];      //Hole den Propagator von root, da hier alle kompatiblen Patterns enthalten sein können
+                            compatible[i][t][d] = p[opposite[d]][t].Length;
+                        }
                     }
                     else
                     {
-                        //------New variant of compatible array init------------
                         int x1 = i % MX;
                         int y1 = i / MX;
 
@@ -972,14 +1020,12 @@ public abstract class NewModel
                         if (y2 < 0) y2 += MY;
                         else if (y2 >= MY) y2 -= MY;
 
-
                         int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
-
                         string neighbourNodeName = inputField[i2];
+
                         var p = propagator[neighbourNodeName];
                         var p2 = p[opposite[d]];
                         var p3 = p2[t];
-
                         //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
                         if (p3 == null)
                         {
@@ -989,6 +1035,7 @@ public abstract class NewModel
                         {
                             compatible[i][t][d] = p3.Length;
                         }
+                        
                     }
                     
                 }
@@ -1272,29 +1319,33 @@ public abstract class NewModel
         return -1;
     }
 
-    private void SaveEntropies()
+    private double[] SaveEntropies()
     {
-        entropySave = new double[wave.Length];
+        double[] entropySave = new double[wave.Length];
 
         for(int i = 0; i < wave.Length; i++)
         {
             entropySave[i] = entropies[i];
         }
+
+        return entropySave;
     }
 
-    private void SaveWave()
+    private Dictionary<int, bool>[] SaveWave()
     {
-        waveSave = new Dictionary<int, bool>[wave.Length];
+        Dictionary<int, bool>[] wSave = new Dictionary<int, bool>[wave.Length];
 
         for (int i = 0; i < wave.Length; i++)
         {
-            waveSave[i] = new Dictionary<int, bool>(wave[i]);
+            wSave[i] = new Dictionary<int, bool>(wave[i]);
         }
+
+        return wSave;
     }
 
     public abstract void Save(string filename);
 
-    //implementierung um die Tiles eines Tile herum zu schauen (links, oben, rechts, unten)
+    //implementierung um die Tiles eines Tile herum zu schauen (links, unten, rechts, oben)
     protected static int[] dx = { -1, 0, 1, 0 };
     protected static int[] dy = { 0, 1, 0, -1 };
     static int[] opposite = { 2, 3, 0, 1 };     //was ist die entgegenliegende Tile position

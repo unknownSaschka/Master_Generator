@@ -15,11 +15,13 @@ public class ClusterOverlapping : NewModel
     //List<byte[]> patterns;                          //global/all patterns
     //List<byte[]> patterns;        //per node patterns. Speichert die colorID zu den einzelnen Farben der Elemente des Patterns ab
     Dictionary<int, byte[]> patterns;
-    
+
+    BitmapGenerationMethod BitmapGenerationMethod;
 
 
     public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, 
-        ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot, string patternOutputFolder)
+        ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot, 
+        string patternOutputFolder, BitmapGenerationMethod bitmapGenerationMethod)
         : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit, backtrackTries, backtracking, clusterBanning, banLowerClusterInRoot)
     {
         //load all samples for each node
@@ -35,6 +37,7 @@ public class ClusterOverlapping : NewModel
 
         nodeDepth = new();
         hasNodeSample = new();
+        BitmapGenerationMethod = bitmapGenerationMethod;
 
         Dictionary<Color32, string> inputFieldColors = new();
 
@@ -314,7 +317,7 @@ public class ClusterOverlapping : NewModel
         return true;
     }
 
-    public int[] GenerateBitmap(Dictionary<int, bool>[] wave)
+    public int[] GenerateBitmap(Dictionary<int, bool>[] wave, bool onlyUnfinished)
     {
         int[] bitmap = new int[MX * MY];
 
@@ -324,7 +327,7 @@ public class ClusterOverlapping : NewModel
             return null;
         }
 
-        if (observed[0] >= 0)
+        if (observed[0] >= 0 && !onlyUnfinished)
         {
             Debug.Log("Generate Bitmap for Finished");
             for (int y = 0; y < MY; y++)
@@ -335,14 +338,10 @@ public class ClusterOverlapping : NewModel
                 {
                     //int dx =  0;
                     int dx = x < MX - N + 1 ? 0 : N - 1;
-
-                    //string nodeName = inputField[x + y * MX];
-
-                    //var nodeColors = colors[nodeName];
-                    //var nodePatterns = patterns[nodeName];
-                    var currentObserved = observed[x - dx + (y - dy) * MX];
-                    //var currentPosition = dx + dy * N;
-                    var currentPosition = 0;        //Aus dem Pattern wird eh immer der Pixel links oben genutzt. Da das Bild eh gecropped wird, kann fest Pos. 0 genommen werden
+                    int currentPosition = x - dx + (y - dy) * MX;
+                    var currentObserved = observed[currentPosition];
+                    var currentPositionInPattern = dx + dy * N;
+                    //var currentPosition = 0;        //Aus dem Pattern wird eh immer der Pixel links oben genutzt. Da das Bild eh gecropped wird, kann fest Pos. 0 genommen werden
 
                     bitmap[x + y * MX] = 0;
 
@@ -350,7 +349,16 @@ public class ClusterOverlapping : NewModel
                     if (currentObserved < patterns.Count && currentObserved >= 0)
                     {
                         byte[] p = patterns[currentObserved];
-                        byte s = p[currentPosition];
+                        byte s;
+
+                        if(BitmapGenerationMethod == BitmapGenerationMethod.New)
+                        {
+                            s = p[4];
+                        }
+                        else
+                        {
+                            s = p[dx + dy * N];
+                        }
                         bitmap[x + y * MX] = colors[s];
                     }
                     else
@@ -370,50 +378,50 @@ public class ClusterOverlapping : NewModel
                 int x = i % MX, y = i / MX;
                 string nodeName = inputField[i];
 
-                /*
-                foreach(var entry in wave[i])
+                if(BitmapGenerationMethod == BitmapGenerationMethod.New)
                 {
-                    if (entry.Value)
+                    foreach (var entry in wave[i])
                     {
-                        if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
-
-                        contributors++;
-                        int argb = colors[patterns[entry.Key][4]];
-                        r += (argb & 0xff0000) >> 16;
-                        g += (argb & 0xff00) >> 8;
-                        b += argb & 0xff;
-                    }
-                }
-                */
-
-                
-                
-                for (int dy = 0; dy < N; dy++) for (int dx = 0; dx < N; dx++)
-                    {
-                        int sx = x - dx;
-                        if (sx < 0) sx += MX;
-
-                        int sy = y - dy;
-                        if (sy < 0) sy += MY;
-
-                        int s = sx + sy * MX;
-                        if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) continue;
-                        string neighbourNodeName = inputField[s];
-                        foreach(var entry in wave[s])
+                        if (entry.Value)
                         {
-                            if (entry.Value)
-                            {
-                                if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
+                            if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
 
-                                contributors++;
-                                int argb = colors[patterns[entry.Key][dx + dy * N]];
-                                r += (argb & 0xff0000) >> 16;
-                                g += (argb & 0xff00) >> 8;
-                                b += argb & 0xff;
-                            }
+                            contributors++;
+                            int argb = colors[patterns[entry.Key][4]];
+                            r += (argb & 0xff0000) >> 16;
+                            g += (argb & 0xff00) >> 8;
+                            b += argb & 0xff;
                         }
                     }
-                
+                }
+                else
+                {
+                    for (int dy = 0; dy < N; dy++) for (int dx = 0; dx < N; dx++)
+                        {
+                            int sx = x - dx;
+                            if (sx < 0) sx += MX;
+
+                            int sy = y - dy;
+                            if (sy < 0) sy += MY;
+
+                            int s = sx + sy * MX;
+                            if (!periodic && (sx + N > MX || sy + N > MY || sx < 0 || sy < 0)) continue;
+                            string neighbourNodeName = inputField[s];
+                            foreach (var entry in wave[s])
+                            {
+                                if (entry.Value)
+                                {
+                                    if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
+
+                                    contributors++;
+                                    int argb = colors[patterns[entry.Key][dx + dy * N]];
+                                    r += (argb & 0xff0000) >> 16;
+                                    g += (argb & 0xff00) >> 8;
+                                    b += argb & 0xff;
+                                }
+                            }
+                        }
+                }
                 
 
                 if (contributors == 0)

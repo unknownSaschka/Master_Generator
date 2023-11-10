@@ -80,14 +80,9 @@ public class PrototypeParser
         for (int y = 0; y < newTexture.height; y++){
             for (int x = 0; x < newTexture.width; x++)
             {
-                //int dx = x < newTexture.width - N + 1 ? 0 : N - 1;
-                //int dy = y > newTexture.height - N + 1 ? 0 : N - 1;
                 int dx = x;
-                int dy1;
-                int dy2;
-
-                dy1 = N - 1;
-                dy2 = y - dy1;
+                int dy1 = N - 1;
+                int dy2 = y - dy1;
 
                 if(dy2 <= 0)
                 {
@@ -117,6 +112,7 @@ public class PrototypeParser
         Color32[] oldColors = oldTexture.GetPixels32();
         Color32[] newColors = new Color32[newTexture.width * newTexture.height];
 
+        /*
         for (int y = 0; y < oldTexture.height; y++)
         {
             for (int x = 0; x < oldTexture.width; x++) 
@@ -131,6 +127,15 @@ public class PrototypeParser
 
                 newColors[x + (y - pixel) * newTexture.width] = oldColors[x + (dy) * oldTexture.width];
 
+            }
+        }
+        */
+
+        for(int y = pixel; y < newTexture.height + pixel; y++)
+        {
+            for(int x = 0; x < newTexture.width; x++)
+            {
+                newColors[x + (y - pixel) * newTexture.width] = oldColors[x + y * oldTexture.width];
             }
         }
 
