@@ -329,7 +329,7 @@ public class ClusterOverlapping : NewModel
 
         if (observed[0] >= 0 && !onlyUnfinished)
         {
-            Debug.Log("Generate Bitmap for Finished");
+            //Debug.Log("Generate Bitmap for Finished");
             for (int y = 0; y < MY; y++)
             {
                 //int dy = 0;
@@ -371,7 +371,7 @@ public class ClusterOverlapping : NewModel
         }
         else
         {
-            Debug.Log("Generate Bitmap for Unfinished");
+            //Debug.Log("Generate Bitmap for Unfinished");
             for (int i = 0; i < wave.Length; i++)
             {
                 int contributors = 0, r = 0, g = 0, b = 0;

@@ -38,6 +38,8 @@ public abstract class NewModel
     public double[] entropySaveStepped;
     public Dictionary<int, bool>[] waveSave;
 
+    private int StepCounter;
+
     //--------------------------------------------
 
     //[Position im Feld][Anzahl aller Patterns]
@@ -257,10 +259,14 @@ public abstract class NewModel
                 //UnityEngine.Debug.Log($"Success: {success}");
                 if (!success)
                 {
+                    UnityEngine.Debug.Log($"Contradiction after {l} steps.");
                     //return false;
                     backtrackTriesCounter++;
                     //UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
-                    if (backtrackTries < backtrackTriesCounter) return false;
+                    if (backtrackTries < backtrackTriesCounter)
+                    {
+                        return false;
+                    }
 
                     //first try to go back one step
                     //BacktrackRestore(-1);
@@ -287,6 +293,8 @@ public abstract class NewModel
             //gibt es keine weiteren Nodes mehr, so werden die ausgewählten Tiles in wave in das observed Array übertragen. Aus observed wird letzendlich die Bitmap erstellt.
             else
             {
+                
+
                 for (int i = 0; i < wave.Length; i++)
                 {
                     string nodeName = inputField[i];
@@ -320,7 +328,7 @@ public abstract class NewModel
     public void InitStepRun(System.Random rng)
     {
         Init();
-
+        StepCounter = 0;
         initPhase = true;
         Clear();
         calculateRemaining();
@@ -347,6 +355,10 @@ public abstract class NewModel
     public bool StepRun()
     {
         int node = NextUnobservedNode(_random);
+
+        StepCounter++;
+        UnityEngine.Debug.Log("Step " + StepCounter);
+
         UnityEngine.Debug.Log(node);
 
         //Solange es eine node gibt, die noch unaufgelöst ist, wird weiter Obvserved und Propagiert.
@@ -363,7 +375,7 @@ public abstract class NewModel
             {
                 //return false;
                 backtrackTriesCounter++;
-                UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
+                //UnityEngine.Debug.Log($"BacktrackCounter: {backtrackTriesCounter}");
                 if (backtrackTries < backtrackTriesCounter) return false;
 
                 //first try to go back one step
@@ -611,7 +623,7 @@ public abstract class NewModel
 
         int x1 = node % MX;
         int y1 = node / MX;
-        UnityEngine.Debug.Log($"Next Pos at {x1},{y1}");
+        //UnityEngine.Debug.Log($"");
 
         /*
         for (int t = 0; t < ; t++)
@@ -633,7 +645,7 @@ public abstract class NewModel
 
         int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
 
-        UnityEngine.Debug.Log("Chose ID: " + r);
+        UnityEngine.Debug.Log($"Next Pos at {x1},{y1} | Chose ID: " + r);
 
         /*
         for (int t = 0; t < T[nodeName]; t++)
@@ -767,6 +779,7 @@ public abstract class NewModel
         int y1 = i / MX;
         //UnityEngine.Debug.Log($"Ban at {x1},{y1}");
 
+
         wave[i][t] = false;
 
         int contributors = 0;
@@ -836,7 +849,7 @@ public abstract class NewModel
                 string neighbourCluster = inputField[i2];
 
                 if (nodeDepth[neighbourCluster] <= nodeDepth[currentCluster]) continue;     //Es sollen nur von einem aktuellen Root Pixel ausgehen, dessen Nachbar kleiner bsp. Wasser ist um in diese zu limitieren
-                UnityEngine.Debug.Log($"PreBanning at:{x2}, {y2}");
+                //UnityEngine.Debug.Log($"PreBanning at:{x2}, {y2}");
 
 
                 /* Ziel dieser Funktion:
@@ -896,12 +909,6 @@ public abstract class NewModel
         Propagate();       //Stack der durchs PreBanning angefallen ist, muss abgearbeitet werden
     }
 
-    void PreBan(int i, int t, int d)
-    {
-        
-        //Alle betroffenen umliegenden Pixel zum Stack hinzufügen
-    }
-
     void Clear()
     {
         modelStates = new();
@@ -924,6 +931,7 @@ public abstract class NewModel
 
             //ADDITION
             foreach (var t in clusterPatterns[nodeName])
+            //foreach (var t in clusterPatterns["root"])
             {
                 //wave[i][t] = true;      //Wird behandelt: Wenn wave null ist, dann gibt es dieses pattern für den Cluster vorerst gar nicht
                 if (wave[i].ContainsKey(t))
@@ -939,32 +947,43 @@ public abstract class NewModel
                 {
                     if (compatibleInit == CompatibleInit.Original)
                     {
-                        //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
-                        compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
-                    }
-                    else if(compatibleInit == CompatibleInit.New)
-                    {
                         /*
-                         * INFO:
-                         * Orig. WFC hat hier normalerweise keine Positionsabfragen. Problem hier ist, dass dy nach unten -1 ist, also eig. nach oben zeigt.
-                         * Dies muss gefixed werden und an anderen Stelle nim Code nach diesem Bug suchen.
-                         */
-
-                        //------New variant of compatible array init------------
-                        
-
-                        //if (x1 < 0 || y1 < 0 || x1 + N - 1 > MX || y1 + N - 1 > MY) continue;
-
                         int x2 = x1 + dx[d];
                         int y2 = y1 + dy[d];
                         if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
                         {
-                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
                             continue;
                         }
+                        */
+
+                        compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                        //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;      //Speichere die Menge an noch kompatiblen Tiles in diese Himmelsrichtung ab
+                    }
+                    else if(compatibleInit == CompatibleInit.New)
+                    {
+
+                        //------New variant of compatible array init------------
+
+                        /* Zwei Probleme bei compatible:
+                         * - Es muss auch über das Feld hinaus gefüllt werden. Gründe bisher unklar. 
+                         * - Es muss richtig gefüllt werden je nachdem welches Cluster am Rand angrenzt
+                         * Evtl Problem in Propagate Funktion suchen
+                         */
+
+                        int x2 = x1 + dx[d];
+                        int y2 = y1 + dy[d];
+                        
+                        
+                        if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
+                        {
+                            //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length; 
+                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            //compatible[i][t][d] = 50;
+                            continue;
+                        }
+                        
 
                         int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
-
                         string neighbourNodeName = inputField[i2];
                         int neighbourNodeDepth = nodeDepth[neighbourNodeName];
 
@@ -975,12 +994,12 @@ public abstract class NewModel
                          * - Aktuelle Pixel (root) ist niedrigere Depth als der Nachbar (water): Zählen wie viele kompatible Pattern es von root zu water Tiles gibt und diese Anzahl speichern
                          * - Aktuelle Pixel (water) ist höhere Depth als der Nachbar (root): Zählen wie viele kompatible Pattern es aus Water gibt, die es zu root Teilen gibt und diese Abspeichern.
                          *      Ansonsten erstmal standard Handhabung wie im orig. WFC und bei Problemen dies mal probieren
-                         *
                          */
 
                         if(neighbourNodeDepth == currentNodeDepth)
                         {
-                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
                         else if(neighbourNodeDepth > currentNodeDepth)
                         {
@@ -990,8 +1009,9 @@ public abstract class NewModel
                         else
                         {
                             //nachbar root, current water
-                            //compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
                             
+                            /*
                             var p = propagator[nodeName];
                             var p2 = p[opposite[d]][t];
                             HashSet<int> patternComp = new HashSet<int>();
@@ -1000,12 +1020,51 @@ public abstract class NewModel
                                 if (p2.Contains(pattID)) patternComp.Add(pattID);
                             }
                             compatible[i][t][d] = patternComp.Count;
-                            
+                            */
                         }
 
                     }
                     else
                     {
+
+                        int x2 = x1 + dx[d];
+                        int y2 = y1 + dy[d];
+
+                        if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
+                        {
+                            //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            //compatible[i][t][d] = -1;
+                            continue;
+                        }
+
+                        int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+                        string neighbourNodeName = inputField[i2];
+                        int neighbourNodeDepth = nodeDepth[neighbourNodeName];
+
+                        if (neighbourNodeDepth == currentNodeDepth)
+                        {
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                        }
+                        else if (neighbourNodeDepth > currentNodeDepth)
+                        {
+                            //nachbar water, current root
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                        }
+                        else
+                        {
+                            var p = propagator[nodeName];
+                            var p2 = p[opposite[d]][t];
+                            HashSet<int> patternComp = new HashSet<int>();
+                            foreach (int pattID in clusterPatterns[neighbourNodeName])
+                            {
+                                if (p2.Contains(pattID)) patternComp.Add(pattID);
+                            }
+                            compatible[i][t][d] = patternComp.Count;
+
+                        }
+
+                        /*
                         int x2 = x1 + dx[d];
                         int y2 = y1 + dy[d];
                         //if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY)) continue;        //Falls außerhalb der Boundary, entweder ignorieren (continue) oder wrapping
@@ -1030,7 +1089,8 @@ public abstract class NewModel
                         {
                             compatible[i][t][d] = p3.Length;
                         }
-                        
+                        */
+
                     }
                     
                 }
