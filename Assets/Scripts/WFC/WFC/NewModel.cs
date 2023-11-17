@@ -972,18 +972,22 @@ public abstract class NewModel
 
                         int x2 = x1 + dx[d];
                         int y2 = y1 + dy[d];
-                        
-                        
+                        compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+
+                        /*
                         if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
                         {
                             //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length; 
-                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
                             //compatible[i][t][d] = 50;
                             continue;
                         }
-                        
+                        */
 
                         int i2 = x2 + y2 * MX;              //2-dim position des Nachbarn wieder in 1-dim position umwandeln
+
+                        if (i2 < 0 || i2 > inputField.Length - 1) continue;
+
                         string neighbourNodeName = inputField[i2];
                         int neighbourNodeDepth = nodeDepth[neighbourNodeName];
 
@@ -996,21 +1000,21 @@ public abstract class NewModel
                          *      Ansonsten erstmal standard Handhabung wie im orig. WFC und bei Problemen dies mal probieren
                          */
 
-                        if(neighbourNodeDepth == currentNodeDepth)
+                        if(nodeName == neighbourNodeName)
                         {
-                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
-                            //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
                         else if(neighbourNodeDepth > currentNodeDepth)
                         {
                             //nachbar water, current root
                             compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
-                        else
+                        else if(neighbourNodeDepth < currentNodeDepth)
                         {
                             //nachbar root, current water
                             compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
-                            
+
                             /*
                             var p = propagator[nodeName];
                             var p2 = p[opposite[d]][t];
@@ -1021,6 +1025,11 @@ public abstract class NewModel
                             }
                             compatible[i][t][d] = patternComp.Count;
                             */
+                        }
+                        else
+                        {
+                            //Problem: Komischerweise ist manchmal wasser nachbar von grass und umgekehrt. Komisch
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
 
                     }
