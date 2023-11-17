@@ -5,8 +5,6 @@ using System.Xml.Linq;
 using System.ComponentModel;
 using System.Collections.Generic;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using B83.Image.BMP;
 using UnityEngine;
 using System;

@@ -998,8 +998,8 @@ public abstract class NewModel
 
                         if(neighbourNodeDepth == currentNodeDepth)
                         {
-                            //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
-                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
                         else if(neighbourNodeDepth > currentNodeDepth)
                         {
@@ -1032,8 +1032,8 @@ public abstract class NewModel
 
                         if (!periodic && (x2 < 0 || y2 < 0 || x2 + N > MX || y2 + N > MY))
                         {
-                            //compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
-                            compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
+                            compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            //compatible[i][t][d] = propagator["root"][opposite[d]][t].Length;
                             //compatible[i][t][d] = -1;
                             continue;
                         }
