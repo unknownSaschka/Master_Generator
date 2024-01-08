@@ -22,7 +22,7 @@ public abstract class NewModel
     protected List<string> nodeNames;
     protected string[] inputField;
     protected Dictionary<string, List<int>> clusterPatterns;   //StartIndex, Element Count (used for pattern and weights)
-    protected int globalPatternCount;
+    public int globalPatternCount;
 
     //int remainingNormal = 0;
     List<int> remaining;
@@ -105,6 +105,8 @@ public abstract class NewModel
     protected bool[] decided;
 
     private bool initPhase = false;
+
+    private int[] remainingPatternsSum;
 
     private System.Random _random;
 
@@ -214,6 +216,7 @@ public abstract class NewModel
 
         PreBanning();
         entropySave = SaveEntropies();
+        calcRemainingSum();
         waveSave = SaveWave();
 
         //SaveCurrentProgress();
@@ -645,7 +648,7 @@ public abstract class NewModel
 
         int r = distribution[nodeName].Random(random.NextDouble());                           //Nächstes Pattern welches gesetzt werrden soll
 
-        UnityEngine.Debug.Log($"Next Pos at {x1},{y1} | Chose ID: " + r);
+        //UnityEngine.Debug.Log($"Next Pos at {x1},{y1} | Chose ID: " + r);
 
         /*
         for (int t = 0; t < T[nodeName]; t++)
@@ -1012,8 +1015,15 @@ public abstract class NewModel
                         }
                         else if(neighbourNodeDepth < currentNodeDepth)
                         {
+                            try
+                            {
+                                compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
+                            }
                             //nachbar root, current water
-                            compatible[i][t][d] = propagator[neighbourNodeName][opposite[d]][t].Length;
+                            catch (Exception e)
+                            {
+                                compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
+                            }
 
                             /*
                             var p = propagator[nodeName];
@@ -1031,7 +1041,6 @@ public abstract class NewModel
                             //Problem: Komischerweise ist manchmal wasser nachbar von grass und umgekehrt. Komisch
                             compatible[i][t][d] = propagator[nodeName][opposite[d]][t].Length;
                         }
-
                     }
                     else
                     {
@@ -1405,6 +1414,26 @@ public abstract class NewModel
         }
 
         return wSave;
+    }
+
+    private void calcRemainingSum()
+    {
+        remainingPatternsSum = new int[wave.Length];
+
+        for(int i = 0; i < wave.Length; i++)
+        {
+            int contributors = 0;
+
+            foreach (var entry in wave[i])
+            {
+                if (entry.Value)
+                {
+                    contributors++;
+                }
+            }
+
+            remainingPatternsSum[i] = contributors;
+        }
     }
 
     public abstract void Save(string filename);

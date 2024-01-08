@@ -14,6 +14,7 @@ public class Node
     public OverlappingModel OverlappingModel;           //TODO Hier pro Node ein Overlapping Model laden
     public bool Periodic;
     public int Symmetry;
+    public double Weight;
 
 
     //LCA Prpblem solving

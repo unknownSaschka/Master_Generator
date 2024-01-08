@@ -45,6 +45,7 @@ public class WFC : MonoBehaviour
     public Helper.ExtendedHeuristic ExtendedHeuristic;
     public Helper.CompatibleInit CompatibleInit;
     public Helper.BitmapGenerationMethod BitmapGenerationMethod;
+    public Helper.WeightCombining WeightCombining;
     public int BacktrackTries;
     public bool Backtracking;
     public bool ClusterBanning;
@@ -201,8 +202,9 @@ public class WFC : MonoBehaviour
             leafs.Add(node.Key, node.Value);
         }
 
-        clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, 
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, BitmapGenerationMethod);
+        clusterModel = new ClusterOverlapping(Nodes, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height, 
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, 
+            BitmapGenerationMethod, WeightCombining);
     }
 
     public bool GenerateClusteredOverlapping()
@@ -259,7 +261,7 @@ public class WFC : MonoBehaviour
         }
 
         clusterModel = new ClusterOverlapping(leafs, PrototypeBitmapTexture, SampleSize, PrototypeBitmapTexture.width, PrototypeBitmapTexture.height,
-            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, BitmapGenerationMethod);
+            Periodic, Ground, Heuristic, ExtendedHeuristic, CompatibleInit, BacktrackTries, Backtracking, ClusterBanning, BanLowerClusterInRoot, patternsFolder, BitmapGenerationMethod, WeightCombining);
 
         clusterModel.InitStepRun(random);
     }
@@ -357,15 +359,31 @@ public class WFC : MonoBehaviour
 
     public void AutomaticGenerationTesting()
     {
+        System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
+        int generatedResults = 0;
+        int totallyElapsed = 0;
+        TimeSpan ts = new TimeSpan();
+
         for(int i = 0; i < generationCycles; i++)
         {
+            sw.Start();
             NewRandomSeed();
 
             if (GenerateClusteredOverlapping())
             {
+                sw.Stop();
+
                 var texturePNG = Result.EncodeToPNG();
+
                 string sbp = Path.GetFileNameWithoutExtension(GraphPath);
-                string resultsFolder = Path.GetDirectoryName(GraphPath) + "\\results\\";
+                string prototypeName = Path.GetFileNameWithoutExtension(StructureBitmapPath);
+                string compInitSettingName = CompatibleInit.ToString();
+                string extHeuristic = ExtendedHeuristic.ToString();
+
+                string folderName = $"\\results_{sbp}_{prototypeName}_{compInitSettingName}_{extHeuristic}_BLCiR={BanLowerClusterInRoot}_Weights={WeightCombining}_SampleSIze={SampleSize}\\";
+
+                string resultsFolder = Path.GetDirectoryName(GraphPath) + folderName;
+                Directory.CreateDirectory(resultsFolder);
 
                 string filename = $"{resultsFolder}Sample={sbp}_N={SampleSize}_seed={seed}.png";
 
@@ -373,32 +391,59 @@ public class WFC : MonoBehaviour
                 {
                     File.WriteAllBytes(filename, texturePNG);
                 }
+
+                generatedResults++;
+                Debug.Log($"Success, took {sw.Elapsed} seconds");
+                totallyElapsed += sw.Elapsed.Milliseconds;
+                ts = ts.Add(sw.Elapsed);
+                sw.Reset();
+            }
+            else
+            {
+                sw.Stop();
+                UnityEngine.Debug.Log($"FAILED, but took {sw.Elapsed} seconds");
+                sw.Reset();
             }
         }
+
+        //int averageElapsed = totallyElapsed / generatedResults;
+        //TimeSpan tsAverage = new TimeSpan(0, 0, 0, 0, averageElapsed);
+        
+        Debug.Log($"Finish, took {ts} and Average time to generate: {ts.Divide(generatedResults)} for {clusterModel.globalPatternCount} Patterns");
     }
 
     public void SaveResult()
     {
         var texturePNG = Result.EncodeToPNG();
         string resultsFolder = Path.GetDirectoryName(GraphPath) + "\\results\\";
-        File.WriteAllBytes($"{resultsFolder}Sample N={SampleSize}_{random.Next()}.png", texturePNG);
+        File.WriteAllBytes($"{resultsFolder}Sample N={SampleSize}_{seed}.png", texturePNG);
     }
 
     public Texture2D GenerateEntropyGraphic(double[] entropies)
     {
         double minValue = int.MaxValue, maxValue = int.MinValue;
 
-        foreach(double e in entropies)
+        for (int i = 0; i < entropies.Length; i++)
         {
-            if(e < minValue) minValue = e;
-            if(e > maxValue) maxValue = e;
+            int x1 = i % Width;
+            int y1 = i / Width;
+            if (x1 >= Width - 2 || y1 >= Height - 2) continue;
+
+            if (entropies[i] < minValue) minValue = entropies[i];
+            if (entropies[i] > maxValue) maxValue = entropies[i];
         }
 
         Color32[] colors = new Color32[Width * Height];
 
         for(int i = 0; i < entropies.Length; i++)
         {
-            double g = entropies[i].Map(minValue, maxValue, 255.0, 0.0);
+            double g = 0;
+
+            if(minValue < 10e3)
+            {
+                g = entropies[i].Map(0.0, maxValue, 0.0, 255.0);      //rot = niedrige Entropy, gelb = hohe Entropy
+            }
+            
             colors[i] = new Color32(255, (byte)g, 0, 255);
         }
 

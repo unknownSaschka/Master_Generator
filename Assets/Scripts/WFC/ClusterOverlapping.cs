@@ -17,11 +17,13 @@ public class ClusterOverlapping : NewModel
     Dictionary<int, byte[]> patterns;
 
     BitmapGenerationMethod BitmapGenerationMethod;
+    WeightCombining WeightCombining;
+    Dictionary<string, Node> Nodes;
 
 
     public ClusterOverlapping(Dictionary<string, Node> nodes, Texture2D clusterMap, int N, int width, int height, bool periodic, bool ground, Heuristic heuristic, 
         ExtendedHeuristic extendedHeuristic, CompatibleInit compatibleInit, int backtrackTries, bool backtracking, bool clusterBanning, bool banLowerClusterInRoot, 
-        string patternOutputFolder, BitmapGenerationMethod bitmapGenerationMethod)
+        string patternOutputFolder, BitmapGenerationMethod bitmapGenerationMethod, WeightCombining weightCombining)
         : base(width, height, N, periodic, heuristic, extendedHeuristic, compatibleInit, backtrackTries, backtracking, clusterBanning, banLowerClusterInRoot)
     {
         //load all samples for each node
@@ -38,6 +40,7 @@ public class ClusterOverlapping : NewModel
         nodeDepth = new();
         hasNodeSample = new();
         BitmapGenerationMethod = bitmapGenerationMethod;
+        WeightCombining = weightCombining;
 
         Dictionary<Color32, string> inputFieldColors = new();
 
@@ -47,6 +50,8 @@ public class ClusterOverlapping : NewModel
 
         //TESTING
         Dictionary<long, int> patternIndices = new();
+
+        Nodes = nodes;
 
         //List<double> weightList = new();
 
@@ -225,7 +230,7 @@ public class ClusterOverlapping : NewModel
         List<string> inputFieldList = new();
 
         Color32[] pixels = clusterMap.GetPixels32().FlipVertically(clusterMap.width, clusterMap.height);        //FlipVertically because Unity Texture2D starts lower left but WFC starts upper left
-        inputField = new string[clusterMap.width * clusterMap.height];
+        //inputField = new string[clusterMap.width * clusterMap.height];
 
         
         foreach (Color32 tile in pixels)
@@ -353,7 +358,17 @@ public class ClusterOverlapping : NewModel
 
                         if(BitmapGenerationMethod == BitmapGenerationMethod.New)
                         {
-                            s = p[4];
+                            if(N % 2 == 1)
+                            {
+                                // s = p[4];
+                                s = p[(N * N) / 2];
+                            }
+                            else
+                            {
+                                int n2 = N - 1;
+                                s = p[(n2 * n2) / 2 + n2 / 2];
+                            }
+                            
                         }
                         else
                         {
@@ -380,6 +395,7 @@ public class ClusterOverlapping : NewModel
 
                 if(BitmapGenerationMethod == BitmapGenerationMethod.New)
                 {
+
                     foreach (var entry in wave[i])
                     {
                         if (entry.Value)
@@ -387,7 +403,19 @@ public class ClusterOverlapping : NewModel
                             if (!clusterPatterns[nodeName].Contains(entry.Key)) continue;
 
                             contributors++;
-                            int argb = colors[patterns[entry.Key][4]];
+                            int argb;
+
+                            if(N% 2 == 1)
+                            {
+                                //argb = colors[patterns[entry.Key][4]];
+                                argb = colors[patterns[entry.Key][(N * N / 2)]];
+                            }
+                            else
+                            {
+                                int n2 = N - 1;
+                                argb = colors[patterns[entry.Key][(n2 * n2) / 2 + n2 / 2]];  //Hier weitermachen, immer diagonal eins links oben zur Mitte nehmen
+                            }
+                            
                             r += (argb & 0xff0000) >> 16;
                             g += (argb & 0xff00) >> 8;
                             b += argb & 0xff;
@@ -533,7 +561,16 @@ public class ClusterOverlapping : NewModel
             {
                 if(!weight.TryAdd(entry.Key, entry.Value))
                 {
-                    weight[entry.Key] += entry.Value;   //Sollte das Pattern schon vorhanden sein, so soll die Gewichtung addiert werden
+                    if(WeightCombining == WeightCombining.Addition)
+                    {
+                        //Sollte das Pattern schon vorhanden sein, so soll die Gewichtung addiert werden
+                        //weight[entry.Key] += entry.Value;
+                        weight[entry.Key] += entry.Value * Nodes[nodeName].Weight;
+                    }
+                    else
+                    {
+                        weight[entry.Key] = ((entry.Value + weight[entry.Key]) / 2) * Nodes[nodeName].Weight;
+                    }
                 }
             }
         }

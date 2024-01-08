@@ -18,6 +18,8 @@ public static class Helper
 
     public enum BitmapGenerationMethod { Original, New }
 
+    public enum WeightCombining { Addition, MeanValue }
+
     /// <summary>
     /// Gibt anhand der Gewichtungen der einzelnen Elemente des Arrays eine zufällige Position
     /// </summary>
@@ -50,7 +52,7 @@ public static class Helper
 
             int newY = height - y - 1;
 
-            toReturn[x + newY * height] = colors[i];
+            toReturn[x + newY * width] = colors[i];
         }
 
         return toReturn;

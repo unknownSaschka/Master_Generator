@@ -25,6 +25,9 @@ public class JSONParser
             JProperty parentProp = (JProperty)content.Parent;
             //Debug.Log(parentProp.Name);   //Property name
 
+            double weight = content.Value<double>("weight");
+            node.Weight = weight;
+
             string samplePath = content.Value<string>("sample");
             if (samplePath != null)
             {
