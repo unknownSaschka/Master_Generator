@@ -60,6 +60,7 @@ public class WFC : MonoBehaviour
 
     public int seed = 1337;
     public int generationCycles = 10;
+    public int minCyclesToGenerate = 20;
 
     // Start is called before the first frame update
     void Start()
@@ -362,9 +363,15 @@ public class WFC : MonoBehaviour
         System.Diagnostics.Stopwatch sw = new System.Diagnostics.Stopwatch();
         int generatedResults = 0;
         int totallyElapsed = 0;
+        int i;
+
+        TimeSpan lowest = TimeSpan.MaxValue;
+        TimeSpan highest = TimeSpan.MinValue;
+
+
         TimeSpan ts = new TimeSpan();
 
-        for(int i = 0; i < generationCycles; i++)
+        for(i = 0; i < generationCycles; i++)
         {
             sw.Start();
             NewRandomSeed();
@@ -396,6 +403,8 @@ public class WFC : MonoBehaviour
                 Debug.Log($"Success, took {sw.Elapsed} seconds");
                 totallyElapsed += sw.Elapsed.Milliseconds;
                 ts = ts.Add(sw.Elapsed);
+                if (lowest.TotalMilliseconds > sw.Elapsed.TotalMilliseconds) lowest = sw.Elapsed;
+                if (highest.TotalMilliseconds < sw.Elapsed.TotalMilliseconds) highest = sw.Elapsed;
                 sw.Reset();
             }
             else
@@ -404,12 +413,22 @@ public class WFC : MonoBehaviour
                 UnityEngine.Debug.Log($"FAILED, but took {sw.Elapsed} seconds");
                 sw.Reset();
             }
+
+            if (generatedResults >= minCyclesToGenerate && minCyclesToGenerate > 0) break;      //Generate at least X amount until break
         }
 
         //int averageElapsed = totallyElapsed / generatedResults;
         //TimeSpan tsAverage = new TimeSpan(0, 0, 0, 0, averageElapsed);
+        if(generatedResults == 0)
+        {
+            Debug.Log($"FAILED, last try took {ts} for {clusterModel.globalPatternCount} Patterns");
+        }
+        else
+        {
+            Debug.Log($"Finish, took {ts} with {generatedResults} generated Results ({i + 1} in total). Min time: {lowest}, highest time: {highest} and Average time to generate: {ts.Divide(generatedResults)} for {clusterModel.globalPatternCount} Patterns");
+        }
         
-        Debug.Log($"Finish, took {ts} and Average time to generate: {ts.Divide(generatedResults)} for {clusterModel.globalPatternCount} Patterns");
+        
     }
 
     public void SaveResult()
