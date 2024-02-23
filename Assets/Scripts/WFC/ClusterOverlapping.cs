@@ -267,6 +267,7 @@ public class ClusterOverlapping : NewModel
             output += $"{t.Key}: {t.Value}\r\n";
         }
         UnityEngine.Debug.Log(output);
+        PrintWeightings();
         SavePatterns(patternOutputFolder);
     }
 
@@ -680,6 +681,40 @@ public class ClusterOverlapping : NewModel
                 File.WriteAllBytes($"{patternOutputFolder}{patternID}.png", texturePNG);
             }
         }
+    }
+
+    private void PrintWeightings()
+    {
+        string output = "Pattern weights\r\n";
+
+        foreach(var node in weights)
+        {
+            int minPatID = 0, maxPatID = 0; 
+            double min = double.MaxValue, max = double.MinValue, avg = 0.0;
+
+            foreach(var weight in node.Value)
+            {
+                if (weight.Value < min)
+                {
+                    min = weight.Value;
+                    minPatID = weight.Key;
+                }
+
+                if (weight.Value > max)
+                {
+                    max = weight.Value;
+                    maxPatID = weight.Key;
+                }
+
+                avg += weight.Value;
+            }
+
+            avg = avg / (double)node.Value.Count;
+            
+            output += $"{node.Key}:\t min: {Math.Round(min, 2)} ({minPatID}), max: {Math.Round(max, 2)} ({maxPatID}), avg: {Math.Round(avg, 2)}, count: {node.Value.Count}\r\n";
+        }
+
+        UnityEngine.Debug.Log(output);
     }
 
     //copied frpm WFC.cs

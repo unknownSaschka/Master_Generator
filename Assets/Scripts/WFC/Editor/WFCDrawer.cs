@@ -123,6 +123,25 @@ public class WFCDrawer : Editor
         {
             wfc.NewRandomSeed();
         }
+
+        GUILayout.Label("Pattern Counter");
+
+        if(GUILayout.Button("Load Pattern"))
+        {
+            string path = EditorUtility.OpenFilePanel("Select Pattern", "", "png");
+            if(path != null) wfc.pattternFilePath = path;
+        }
+
+        if(GUILayout.Button("Load Result Folder"))
+        {
+            string path = EditorUtility.OpenFolderPanel("Select Folder", "", "");
+            if(path != null) wfc.resultsFolderPath = path;
+        }
+
+        if(GUILayout.Button("Start Counting"))
+        {
+            wfc.CountPatterns();
+        }
     }
 
     

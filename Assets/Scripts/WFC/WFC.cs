@@ -1,3 +1,4 @@
+using Assets.Scripts.WFC;
 using B83.Image.BMP;
 using System;
 using System.Collections;
@@ -61,6 +62,9 @@ public class WFC : MonoBehaviour
     public int seed = 1337;
     public int generationCycles = 10;
     public int minCyclesToGenerate = 20;
+
+    public string resultsFolderPath;
+    public string pattternFilePath;
 
     // Start is called before the first frame update
     void Start()
@@ -365,10 +369,17 @@ public class WFC : MonoBehaviour
         int totallyElapsed = 0;
         int i;
 
+        string sbp = Path.GetFileNameWithoutExtension(GraphPath);
+        string prototypeName = Path.GetFileNameWithoutExtension(StructureBitmapPath);
+        string compInitSettingName = CompatibleInit.ToString();
+        string extHeuristic = ExtendedHeuristic.ToString();
+        string allTimes = "";
+        string folderName = $"\\results_{sbp}_{prototypeName}_{compInitSettingName}_{extHeuristic}_BLCiR={BanLowerClusterInRoot}_Weights={WeightCombining}_SampleSIze={SampleSize}\\";
+        string resultsFolder = Path.GetDirectoryName(GraphPath) + folderName;
+        Directory.CreateDirectory(resultsFolder);
+
         TimeSpan lowest = TimeSpan.MaxValue;
         TimeSpan highest = TimeSpan.MinValue;
-
-
         TimeSpan ts = new TimeSpan();
 
         for(i = 0; i < generationCycles; i++)
@@ -381,17 +392,6 @@ public class WFC : MonoBehaviour
                 sw.Stop();
 
                 var texturePNG = Result.EncodeToPNG();
-
-                string sbp = Path.GetFileNameWithoutExtension(GraphPath);
-                string prototypeName = Path.GetFileNameWithoutExtension(StructureBitmapPath);
-                string compInitSettingName = CompatibleInit.ToString();
-                string extHeuristic = ExtendedHeuristic.ToString();
-
-                string folderName = $"\\results_{sbp}_{prototypeName}_{compInitSettingName}_{extHeuristic}_BLCiR={BanLowerClusterInRoot}_Weights={WeightCombining}_SampleSIze={SampleSize}\\";
-
-                string resultsFolder = Path.GetDirectoryName(GraphPath) + folderName;
-                Directory.CreateDirectory(resultsFolder);
-
                 string filename = $"{resultsFolder}Sample={sbp}_N={SampleSize}_seed={seed}.png";
 
                 if (!File.Exists(filename))
@@ -405,6 +405,7 @@ public class WFC : MonoBehaviour
                 ts = ts.Add(sw.Elapsed);
                 if (lowest.TotalMilliseconds > sw.Elapsed.TotalMilliseconds) lowest = sw.Elapsed;
                 if (highest.TotalMilliseconds < sw.Elapsed.TotalMilliseconds) highest = sw.Elapsed;
+                allTimes += sw.Elapsed.ToString() + "\r\n";
                 sw.Reset();
             }
             else
@@ -425,7 +426,8 @@ public class WFC : MonoBehaviour
         }
         else
         {
-            Debug.Log($"Finish, took {ts} with {generatedResults} generated Results ({i + 1} in total). Min time: {lowest}, highest time: {highest} and Average time to generate: {ts.Divide(generatedResults)} for {clusterModel.globalPatternCount} Patterns");
+            Debug.Log($"Finish, took {ts} with {generatedResults} generated Results ({i + 1} in total). Min time: {lowest}, highest time: {highest} and Average time to generate: {ts.Divide(generatedResults)} for {clusterModel.globalPatternCount} Patterns\r\n" + allTimes);
+            PatternCounter.WriteTimings(allTimes, resultsFolder);
         }
         
         
@@ -473,5 +475,11 @@ public class WFC : MonoBehaviour
         tex.Apply();
 
         return tex;
+    }
+
+    public void CountPatterns()
+    {
+        string output = PatternCounter.CountPixels(pattternFilePath, resultsFolderPath);
+        Debug.Log(output);
     }
 }
