@@ -1,0 +1,45 @@
+{
+	"nodes":{
+		"root": {
+			"color": [ 0, 0, 0 ],
+			"children": ["water", "water-grass", "land"],
+			"weight": 1.0
+		},
+		"land": {
+			"color": [ 128, 0, 255 ],
+			"children": ["grass", "village", "grass-village"],
+			"weight": 1.0
+		},
+		"grass": {
+			"color": [ 0, 255, 0 ],
+			"periodic": false,
+			"sample": "samples/grass.png",
+			"weight": 1.0
+		},
+		"water": {
+			"color": [ 0, 0, 255 ],
+			"periodic": false,
+			"sample": "samples/water.png",
+			"weight": 1.0
+		},
+		"water-grass": {
+			"symmetry": 8,
+			"periodic": false,
+			"sample": "samples/water-grass3.png",
+			"weight": 1.0
+		},
+		"grass-village": {
+			"symmetry": 2,
+			"periodic": false,
+			"sample": "samples/grass-village10.png",
+			"weight": 1.0
+		},
+		"village": {
+			"color": [ 255, 0, 0 ],
+			"symmetry": 2,
+			"periodic": false,
+			"sample": "samples/village2.png",
+			"weight": 1.0
+		}
+	}
+}

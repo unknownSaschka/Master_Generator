@@ -1,0 +1,28 @@
+{
+	"nodes":{
+		"root": {
+			"color": [ 0, 0, 0 ],
+			"children": ["grass", "water", "water-grass"]
+		},
+		"grass": {
+			"color": [ 0, 255, 0 ],
+			"periodic": true,
+			"symmetry": 2,
+			"sample": "samples/grass2.png",
+			"weight": 1.0
+		},
+		"water": {
+			"color": [ 0, 0, 255 ],
+			"periodic": true,
+			"symmetry": 2,
+			"sample": "samples/water2.png",
+			"weight": 1.0
+		},
+		"water-grass": {
+			"symmetry": 4,
+			"periodic": false,
+			"sample": "samples/water-grass4.png",
+			"weight": 1.0
+		}
+	}
+}
